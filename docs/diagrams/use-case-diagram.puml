@@ -1,0 +1,84 @@
+@startuml
+left to right direction
+skinparam packageStyle rectangle
+skinparam shadowing false
+skinparam monochrome false
+
+actor "Passenger" as passenger
+actor "System Administrator" as admin
+actor "Payment Simulator" as paymentGateway
+
+rectangle "Railway Reservation System (Team 11)" {
+  ' Passenger core search and view use cases
+  usecase "Search Trains" as UC_Search
+  usecase "View Train Details" as UC_ViewTrain
+  usecase "Check Seat Availability" as UC_CheckAvail
+  usecase "Select Train and Class" as UC_SelectTrain
+  
+  ' Passenger booking flow
+  usecase "Enter Passenger Details" as UC_EnterPass
+  usecase "Book Ticket" as UC_BookTicket
+  usecase "Opt for Waiting List" as UC_OptWL
+  usecase "Make Simulated Payment" as UC_MakePayment
+  usecase "Receive E-Ticket" as UC_ReceiveTicket
+  
+  ' Passenger post-booking actions
+  usecase "View Booking History" as UC_ViewHistory
+  usecase "View Ticket Details" as UC_ViewTicket
+  usecase "Cancel Ticket" as UC_CancelTicket
+  usecase "View Refund Status" as UC_ViewRefund
+
+  ' Administrator use cases
+  usecase "Log In as Administrator" as UC_AdminLogin
+  usecase "Manage Demo Trains" as UC_ManageTrains
+  usecase "Manage Routes and Schedules" as UC_ManageRoutes
+  usecase "Manage Fare and Seat Inventory" as UC_ManageInventory
+  usecase "View Reservations" as UC_ViewReservations
+  usecase "View System Dashboard" as UC_ViewDashboard
+
+  ' Payment simulator use cases
+  usecase "Process Simulated Payment" as UC_ProcessPayment
+  usecase "Return Payment Result" as UC_ReturnResult
+  usecase "Process Simulated Refund" as UC_ProcessRefund
+}
+
+' Passenger associations
+passenger --> UC_Search
+passenger --> UC_ViewTrain
+passenger --> UC_SelectTrain
+passenger --> UC_EnterPass
+passenger --> UC_BookTicket
+passenger --> UC_ViewHistory
+passenger --> UC_ViewTicket
+passenger --> UC_CancelTicket
+
+' Includes and Extends
+UC_Search ..> UC_CheckAvail : <<include>>
+UC_BookTicket ..> UC_CheckAvail : <<include>>
+UC_BookTicket ..> UC_MakePayment : <<include>>
+UC_BookTicket ..> UC_ReceiveTicket : <<include>>
+UC_BookTicket <.. UC_OptWL : <<extend>>
+UC_CancelTicket ..> UC_ProcessRefund : <<include>>
+UC_CancelTicket ..> UC_ViewRefund : <<include>>
+
+' Payment gateway interactions
+UC_MakePayment --> paymentGateway
+paymentGateway --> UC_ProcessPayment
+paymentGateway --> UC_ReturnResult
+paymentGateway --> UC_ProcessRefund
+
+' Administrator associations
+admin --> UC_AdminLogin
+admin --> UC_ManageTrains
+admin --> UC_ManageRoutes
+admin --> UC_ManageInventory
+admin --> UC_ViewReservations
+admin --> UC_ViewDashboard
+
+UC_ManageTrains ..> UC_AdminLogin : <<include>>
+UC_ManageRoutes ..> UC_AdminLogin : <<include>>
+UC_ManageInventory ..> UC_AdminLogin : <<include>>
+UC_ViewReservations ..> UC_AdminLogin : <<include>>
+UC_ViewDashboard ..> UC_AdminLogin : <<include>>
+
+@enduml

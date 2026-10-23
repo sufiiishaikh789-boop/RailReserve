@@ -1,0 +1,141 @@
+@startuml
+title Swimlane Activity Diagram - Responsibility Handoffs across System Roles
+skinparam monochrome false
+skinparam shadowing false
+
+|#LightYellow|Passenger|
+|#LightCyan|Railway Reservation System|
+|#LightGreen|Payment Simulator|
+|#Lavender|Administrator|
+
+|Passenger|
+start
+:Submit Search (Source, Dest, Date);
+
+|Railway Reservation System|
+:Validate Station Selection & Date;
+:Execute Route Ordering Algorithm;
+:Retrieve Real-Time Fares & Seat Inventory;
+:Render Matching Train Cards;
+
+|Passenger|
+:Select Train & Travel Class;
+:Enter Passenger & Contact Information;
+:Submit Booking Request;
+
+|Railway Reservation System|
+:Validate Passenger Names, Ages, Contact;
+:Calculate Fare Breakdown (Base + Surcharges);
+:Begin Serializable Transaction (BEGIN IMMEDIATE);
+:Recheck Live Inventory Quotas;
+if (Inventory Status?) then (Available CNF)
+  :Reserve Temporary Seat Slot;
+else (WL Available)
+  :Reserve Temporary WL Slot;
+else (Full / Regret)
+  :Abort Transaction;
+  |Passenger|
+  :Display "Train Fully Booked";
+  stop
+endif
+
+|Railway Reservation System|
+:Generate Payment Request Token;
+:Open Simulated Payment Interface;
+
+|Payment Simulator|
+:Present Payment Options (Card/UPI);\nWait for User Interaction;
+
+|Passenger|
+:Select Payment Outcome\n(Success, Failure, or Cancel);
+
+|Payment Simulator|
+if (Selected Outcome?) then (Success)
+  :Generate Simulation Transaction ID;
+  :Send Payment Authorized Callback;
+else (Failure / Decline)
+  :Send Payment Declined Callback;
+  |Railway Reservation System|
+  :Rollback Temporary Seat Reservation;
+  :Record Failed Payment Audit;
+  |Passenger|
+  :Display "Payment Failed - Inventory Released";
+  stop
+endif
+
+|Railway Reservation System|
+:Commit Database Transaction;
+if (Booking Type?) then (Confirmed)
+  :Deduct Seat from Available Inventory;
+  :Assign Coach & Berth Identifiers;
+else (Waiting List)
+  :Increment Waiting List Count;
+  :Assign Sequential WL Position;
+endif
+:Generate Unique 10-char PNR;
+:Create Booking & Passenger Records;
+:Issue Digital E-Ticket with Watermark;
+
+|Passenger|
+:View / Print Demonstration E-Ticket;
+
+== Later Lifecycle: Cancellation Workflow ==
+
+|Passenger|
+:Request Ticket Cancellation (Enter PNR);
+
+|Railway Reservation System|
+:Verify PNR & Check Cancellation Eligibility;
+:Calculate Refund Tier based on Hours to Departure;
+:Display Net Refund & Deduction Breakdown;
+
+|Passenger|
+:Confirm Cancellation;
+
+|Railway Reservation System|
+:Execute Atomic Cancellation Transaction;
+:Mark Booking as CANCELLED;
+if (Was Confirmed Ticket?) then (yes)
+  :Return Seat to Available Pool;
+  if (Any Queued WL Passengers?) then (yes)
+    :Promote First WL Passenger to CNF;
+    :Assign Freed Seat to Promoted Passenger;
+    :Renumber Remaining WL Positions;
+    :Log WL Promotion Event;
+  endif
+else (Waiting List Ticket)
+  :Decrement Waiting List Counter;
+endif
+:Initiate Refund Request;
+
+|Payment Simulator|
+:Process Simulated Refund Credit;
+:Return Refund Reference ID;
+
+|Railway Reservation System|
+:Record Refund Record & Update Audit Trail;
+
+|Passenger|
+:Receive Cancellation & Refund Confirmation;
+
+== Administrative Oversight ==
+
+|Administrator|
+:Log In with Admin Credentials;
+
+|Railway Reservation System|
+:Validate Admin Token / Credentials;
+:Load Real-time Analytics Dashboard;
+
+|Administrator|
+:Review Revenue, Occupancy, & WL Queues;
+:Adjust Seat Quotas or Add Schedules;
+
+|Railway Reservation System|
+:Apply Modifications with Instant Effect;
+:Write Security Audit Log;
+
+|Administrator|
+stop
+
+@enduml

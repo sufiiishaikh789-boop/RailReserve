@@ -1,0 +1,174 @@
+@startuml
+title Entity-Relationship (ER) Diagram - Railway Reservation System (Team 11)
+skinparam linetype ortho
+skinparam monochrome false
+skinparam shadowing false
+
+entity "stations" as stations {
+  * id : INTEGER <<PK>>
+  --
+  * code : TEXT <<UNIQUE>>
+  * name : TEXT
+  * city : TEXT
+  * state : TEXT
+}
+
+entity "trains" as trains {
+  * id : INTEGER <<PK>>
+  --
+  * train_number : TEXT <<UNIQUE>>
+  * name : TEXT
+  * type : TEXT
+  * active : INTEGER
+}
+
+entity "train_routes" as train_routes {
+  * id : INTEGER <<PK>>
+  --
+  * train_id : INTEGER <<FK>>
+  * station_id : INTEGER <<FK>>
+  * stop_sequence : INTEGER
+  arrival_time : TEXT
+  departure_time : TEXT
+  * day_offset : INTEGER
+  * distance_km : INTEGER
+}
+
+entity "train_classes" as train_classes {
+  * id : INTEGER <<PK>>
+  --
+  * train_id : INTEGER <<FK>>
+  * class_code : TEXT
+  * class_name : TEXT
+  * base_fare : REAL
+  * total_seats : INTEGER
+  * max_waiting_list : INTEGER
+}
+
+entity "schedules" as schedules {
+  * id : INTEGER <<PK>>
+  --
+  * train_id : INTEGER <<FK>>
+  * journey_date : TEXT
+  * status : TEXT
+}
+
+entity "seat_inventory" as seat_inventory {
+  * id : INTEGER <<PK>>
+  --
+  * schedule_id : INTEGER <<FK>>
+  * class_code : TEXT
+  * total_seats : INTEGER
+  * available_seats : INTEGER
+  * waiting_list_count : INTEGER
+  * max_waiting_list : INTEGER
+}
+
+entity "bookings" as bookings {
+  * id : INTEGER <<PK>>
+  --
+  * pnr_number : TEXT <<UNIQUE>>
+  * schedule_id : INTEGER <<FK>>
+  * source_station_id : INTEGER <<FK>>
+  * dest_station_id : INTEGER <<FK>>
+  * journey_date : TEXT
+  * class_code : TEXT
+  * total_passengers : INTEGER
+  * total_fare : REAL
+  * booking_status : TEXT
+  * payment_status : TEXT
+  * contact_email : TEXT
+  * contact_phone : TEXT
+  * idempotency_key : TEXT <<UNIQUE>>
+  * created_at : TEXT
+  * updated_at : TEXT
+}
+
+entity "booking_passengers" as booking_passengers {
+  * id : INTEGER <<PK>>
+  --
+  * booking_id : INTEGER <<FK>>
+  * passenger_name : TEXT
+  * age : INTEGER
+  * gender : TEXT
+  berth_preference : TEXT
+  allocated_seat : TEXT
+  * status : TEXT
+  wl_number : INTEGER
+}
+
+entity "payments" as payments {
+  * id : INTEGER <<PK>>
+  --
+  * booking_id : INTEGER <<FK>>
+  * transaction_id : TEXT <<UNIQUE>>
+  * amount : REAL
+  * payment_method : TEXT
+  * status : TEXT
+  failure_reason : TEXT
+  * created_at : TEXT
+}
+
+entity "cancellations" as cancellations {
+  * id : INTEGER <<PK>>
+  --
+  * booking_id : INTEGER <<FK>>
+  * cancellation_reference : TEXT <<UNIQUE>>
+  * seats_cancelled : INTEGER
+  * original_fare : REAL
+  * cancellation_charge : REAL
+  * refund_amount : REAL
+  * refund_status : TEXT
+  * cancelled_at : TEXT
+}
+
+entity "waiting_list_queue" as waiting_list_queue {
+  * id : INTEGER <<PK>>
+  --
+  * schedule_id : INTEGER <<FK>>
+  * class_code : TEXT
+  * booking_passenger_id : INTEGER <<FK>>
+  * queue_position : INTEGER
+  * status : TEXT
+  * created_at : TEXT
+}
+
+entity "audit_logs" as audit_logs {
+  * id : INTEGER <<PK>>
+  --
+  * event_type : TEXT
+  booking_id : INTEGER <<FK>>
+  * description : TEXT
+  * ip_address : TEXT
+  * timestamp : TEXT
+}
+
+entity "admin_users" as admin_users {
+  * id : INTEGER <<PK>>
+  --
+  * username : TEXT <<UNIQUE>>
+  * password_hash : TEXT
+  * role : TEXT
+  * created_at : TEXT
+}
+
+' Relationships
+trains ||--o{ train_routes : "has route stops"
+stations ||--o{ train_routes : "included in"
+trains ||--o{ train_classes : "offers"
+trains ||--o{ schedules : "scheduled on"
+
+schedules ||--o{ seat_inventory : "tracks"
+schedules ||--o{ bookings : "booked for"
+stations ||--o{ bookings : "origin for"
+stations ||--o{ bookings : "destination for"
+
+bookings ||--|{ booking_passengers : "contains"
+bookings ||--o| payments : "paid via"
+bookings ||--o| cancellations : "cancelled by"
+bookings ||--o{ audit_logs : "audited in"
+
+booking_passengers ||--o| waiting_list_queue : "queued in"
+schedules ||--o{ waiting_list_queue : "queues for"
+
+@enduml

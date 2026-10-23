@@ -1,0 +1,116 @@
+@startuml
+title Activity Diagram - Railway Reservation Complete Booking & Cancellation Workflow
+skinparam monochrome false
+skinparam shadowing false
+
+start
+
+:Enter Source Station, Destination Station, and Travel Date;
+
+if (Are search parameters valid?) then (no)
+  :Display Validation Error (e.g. Same Station or Past Date);
+  stop
+else (yes)
+  :Query Train Routes & Schedules;
+  if (Do matching trains exist?) then (no)
+    :Display "No direct trains found for selected route";
+    stop
+  else (yes)
+    :Display Matching Trains, Times, Fares, & Availability;
+  endif
+endif
+
+:Select Desired Train and Travel Class;
+
+:Enter Passenger Details (Names, Ages, Genders, Preferences, Contact);
+
+if (Are passenger details valid?) then (no)
+  :Display Passenger Validation Errors;
+  stop
+else (yes)
+  :Calculate Transparent Fare Breakdown;
+endif
+
+:Recheck Real-Time Seat Availability;
+
+if (Are Confirmed (CNF) seats available?) then (yes)
+  :Set Requested Status to CNF;
+else (no)
+  if (Is Waiting List (WL) capacity available?) then (yes)
+    if (Does passenger accept Waiting List booking?) then (yes)
+      :Set Requested Status to WAITING_LIST;
+    else (no)
+      :Booking Aborted by User;
+      stop
+    endif
+  else (no)
+    :Display "Regret: Train Fully Booked (No WL available)";
+    stop
+  endif
+endif
+
+:Initiate Simulated Payment Modal;
+
+if (Simulated Payment Outcome?) then (Payment Failure / Decline)
+  :Display Payment Failure Alert;
+  :Release any Held State & Log Audit Event;
+  :Transaction Terminated (No Ticket Created);
+  stop
+elseif (User Cancelled / Timeout)
+  :Display "Transaction Cancelled by User";
+  :Release any Held State;
+  stop
+else (Payment Success)
+  :Execute Atomic Database Transaction;
+  if (Confirmed Status?) then (CNF)
+    :Decrement Available Seats in Inventory;
+    :Assign Coach and Seat Numbers;
+  else (WL)
+    :Increment Waiting List Count;
+    :Assign FIFO Waiting List Queue Position;
+  endif
+  :Generate Globally Unique PNR Number;
+  :Save Booking & Passenger Records;
+  :Record Successful Payment Transaction;
+  :Log System Audit Event;
+  :Render Digital E-Ticket & Confirmation;
+endif
+
+:User Views / Downloads E-Ticket;
+
+if (Does passenger request ticket cancellation?) then (yes)
+  :Enter PNR and Contact Details for Verification;
+  if (Is Ticket Eligible for Cancellation?) then (yes)
+    :Calculate Refund based on Cancellation Time Window;
+    :Display Refund Summary & Deduction;
+    if (Confirm Cancellation?) then (yes)
+      :Mark Booking Status as CANCELLED;
+      if (Was Booking Confirmed?) then (yes)
+        :Release Seat Back to Inventory;
+        if (Any Passengers in Waiting List Queue?) then (yes)
+          :Promote First WL Passenger to CONFIRMED;
+          :Assign Released Seat to Promoted Passenger;
+          :Renumber Remaining WL Positions;
+          :Log WL Promotion Audit Event;
+        endif
+      else (WL Ticket)
+        :Decrement Waiting List Count;
+        :Remove from WL Queue & Renumber;
+      endif
+      :Record Simulated Refund Transaction;
+      :Display Refund Reference & Success Receipt;
+      stop
+    else (no)
+      :Cancellation Aborted;
+      stop
+    endif
+  else (no)
+    :Display "Ticket Ineligible for Cancellation (Past Journey or Already Cancelled)";
+    stop
+  endif
+else (no)
+  :Journey Completed Successfully;
+  stop
+endif
+
+@enduml
