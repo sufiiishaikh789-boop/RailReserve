@@ -170,7 +170,59 @@ export class TrainRepository {
 
   findAllStations(): Station[] {
     const db = getDatabase();
-    return db.prepare('SELECT * FROM stations ORDER BY name').all() as Station[];
+    return db.prepare('SELECT * FROM stations WHERE active = 1 ORDER BY state, name').all() as Station[];
+  }
+
+  // Autocomplete: search by code, name, city, or comma-separated aliases
+  searchStations(query: string): Station[] {
+    const db = getDatabase();
+    const q = `%${query.toLowerCase()}%`;
+    return db.prepare(`
+      SELECT * FROM stations
+      WHERE active = 1
+        AND (
+          LOWER(code) LIKE ?
+          OR LOWER(name) LIKE ?
+          OR LOWER(city) LIKE ?
+          OR LOWER(aliases) LIKE ?
+        )
+      ORDER BY
+        CASE WHEN LOWER(code) = LOWER(?) THEN 0
+             WHEN LOWER(code) LIKE ? THEN 1
+             ELSE 2
+        END,
+        name
+      LIMIT 12
+    `).all(q, q, q, q, query, `${query.toLowerCase()}%`) as Station[];
+  }
+
+  // Get all intermediate stops for a train (for detail/timeline view)
+  findTrainStops(trainId: number): Array<{
+    stop_sequence: number;
+    station_code: string;
+    station_name: string;
+    city: string;
+    arrival_time: string | null;
+    departure_time: string | null;
+    day_offset: number;
+    distance_km: number;
+  }> {
+    const db = getDatabase();
+    return db.prepare(`
+      SELECT
+        tr.stop_sequence,
+        s.code  AS station_code,
+        s.name  AS station_name,
+        s.city,
+        tr.arrival_time,
+        tr.departure_time,
+        tr.day_offset,
+        tr.distance_km
+      FROM train_routes tr
+      JOIN stations s ON s.id = tr.station_id
+      WHERE tr.train_id = ?
+      ORDER BY tr.stop_sequence
+    `).all(trainId) as any[];
   }
 
   findStationByCode(code: string): Station | undefined {
@@ -178,6 +230,19 @@ export class TrainRepository {
     return db
       .prepare('SELECT * FROM stations WHERE code = ? COLLATE NOCASE')
       .get(code) as Station | undefined;
+  }
+
+  findStationById(id: number): Station | undefined {
+    const db = getDatabase();
+    return db.prepare('SELECT * FROM stations WHERE id = ?').get(id) as Station | undefined;
+  }
+
+  // Get train route record by station ID (for ticket dep/arr times)
+  getTrainRouteByStationId(trainId: number, stationId: number) {
+    const db = getDatabase();
+    return db
+      .prepare('SELECT * FROM train_routes WHERE train_id = ? AND station_id = ?')
+      .get(trainId, stationId) as import('../types/index.js').TrainRoute | undefined;
   }
 
   findScheduleById(scheduleId: number) {

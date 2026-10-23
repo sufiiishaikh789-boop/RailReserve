@@ -21,7 +21,11 @@ export interface Station {
   name: string;
   city: string;
   state: string;
+  region: string;
+  aliases: string;
+  active: number;
 }
+
 
 export interface ClassAvailability {
   class_code: ClassCode;
@@ -97,6 +101,9 @@ export interface ETicket {
   train_name: string;
   source_station: string;
   dest_station: string;
+  // v2.0 additions — station codes for display
+  source_station_code: string;
+  dest_station_code: string;
   journey_date: string;
   departure_time: string;
   arrival_time: string;
@@ -114,6 +121,7 @@ export interface ETicket {
   booked_at: string;
   disclaimer: string;
 }
+
 
 export interface CancellationPreview {
   pnr_number: string;

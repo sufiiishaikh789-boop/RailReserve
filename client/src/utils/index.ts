@@ -49,10 +49,12 @@ export function getPassengerStatusLabel(status: PassengerStatus): { label: strin
 export function getTrainTypeBadge(type: string): string {
   switch (type) {
     case 'SUPERFAST': return 'badge badge-superfast';
-    case 'EXPRESS':   return 'badge' + ' ' + 'badge-confirmed';
-    default:          return 'badge badge-cancelled';
+    case 'EXPRESS':   return 'badge badge-express';
+    case 'MAIL':      return 'badge badge-mail';
+    default:          return 'badge badge-passenger';
   }
 }
+
 
 export function getTodayDate(): string {
   return new Date().toISOString().split('T')[0];

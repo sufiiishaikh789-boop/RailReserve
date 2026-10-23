@@ -1,10 +1,12 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { BrowserRouter, Routes, Route, useNavigate, Link, useLocation } from 'react-router-dom';
 import {
   Train, Search, Users, CreditCard, Ticket, Clock, MapPin,
   ChevronRight, AlertTriangle, CheckCircle, XCircle, Info,
-  LogOut, LayoutDashboard, Settings, Printer, ArrowLeft,
-  RefreshCw, Shield, Moon
+  LogOut, LayoutDashboard, Printer, ArrowLeft,
+  RefreshCw, Shield, ArrowRightLeft, Filter, TrendingUp,
+  IndianRupee, Star, Navigation, Activity, ChevronDown, ChevronUp,
+  FileText, BarChart2, Wifi, Globe
 } from 'lucide-react';
 import { apiClient } from './api';
 import type {
@@ -18,7 +20,123 @@ import {
 } from './utils';
 
 // ============================================================
-// NAVIGATION COMPONENT
+// STATION AUTOCOMPLETE COMPONENT
+// ============================================================
+interface StationAutocompleteProps {
+  value: string;
+  displayValue: string;
+  onSelect: (code: string, name: string) => void;
+  placeholder?: string;
+  label?: string;
+  id?: string;
+  icon?: React.ReactNode;
+}
+
+function StationAutocomplete({ value, displayValue, onSelect, placeholder, label, id, icon }: StationAutocompleteProps) {
+  const [query, setQuery] = useState(displayValue);
+  const [results, setResults] = useState<Station[]>([]);
+  const [open, setOpen] = useState(false);
+  const [activeIdx, setActiveIdx] = useState(-1);
+  const [loading, setLoading] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+  const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Sync display when parent changes value externally
+  useEffect(() => { setQuery(displayValue); }, [displayValue]);
+
+  // Close on outside click
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) {
+        setOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, []);
+
+  const search = useCallback((q: string) => {
+    if (timer.current) clearTimeout(timer.current);
+    if (q.length < 1) { setResults([]); setOpen(false); return; }
+    timer.current = setTimeout(async () => {
+      setLoading(true);
+      try {
+        const r = await apiClient.autocompleteStations(q);
+        setResults(r.stations);
+        setOpen(r.stations.length > 0);
+        setActiveIdx(-1);
+      } catch { /* ignore */ }
+      finally { setLoading(false); }
+    }, 180);
+  }, []);
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setQuery(e.target.value);
+    search(e.target.value);
+  };
+
+  const handleSelect = (s: Station) => {
+    setQuery(`${s.code} — ${s.city}`);
+    onSelect(s.code, `${s.code} — ${s.city}`);
+    setOpen(false);
+    setResults([]);
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (!open) return;
+    if (e.key === 'ArrowDown') { e.preventDefault(); setActiveIdx(i => Math.min(i + 1, results.length - 1)); }
+    if (e.key === 'ArrowUp') { e.preventDefault(); setActiveIdx(i => Math.max(i - 1, 0)); }
+    if (e.key === 'Enter' && activeIdx >= 0) { e.preventDefault(); handleSelect(results[activeIdx]); }
+    if (e.key === 'Escape') { setOpen(false); }
+  };
+
+  return (
+    <div ref={ref} className="autocomplete-wrapper">
+      {label && <label className="input-label" htmlFor={id}>{label}</label>}
+      <div style={{ position: 'relative' }}>
+        <span className="autocomplete-icon" style={{ top: '50%', transform: 'translateY(-50%)', position: 'absolute', left: '0.75rem', zIndex: 1 }}>
+          {icon || <MapPin size={16} />}
+        </span>
+        <input
+          id={id}
+          type="text"
+          className="autocomplete-input"
+          placeholder={placeholder || 'Search station…'}
+          value={query}
+          onChange={handleChange}
+          onFocus={() => query.length > 0 && results.length > 0 && setOpen(true)}
+          onKeyDown={handleKeyDown}
+          autoComplete="off"
+        />
+        {loading && (
+          <span style={{ position: 'absolute', right: '0.75rem', top: '50%', transform: 'translateY(-50%)' }}>
+            <span className="spinner" style={{ width: '0.9rem', height: '0.9rem', borderWidth: '2px', color: '#94a3b8' }} />
+          </span>
+        )}
+      </div>
+      {open && results.length > 0 && (
+        <div className="autocomplete-dropdown">
+          {results.map((s, i) => (
+            <div
+              key={s.id}
+              className={`autocomplete-item ${i === activeIdx ? 'active' : ''}`}
+              onMouseDown={() => handleSelect(s)}
+            >
+              <span className="autocomplete-code">{s.code}</span>
+              <div>
+                <div className="autocomplete-name">{s.city}</div>
+                <div className="autocomplete-city">{s.name.replace(' (Demo)', '')} · {s.state}</div>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ============================================================
+// NAVBAR
 // ============================================================
 function Navbar() {
   const [adminToken, setAdminToken] = useState(localStorage.getItem('adminToken'));
@@ -38,33 +156,36 @@ function Navbar() {
 
   return (
     <nav className="nav">
-      <div className="container-wide" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.875rem 1.25rem' }}>
+      <div className="container-wide" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.75rem 1.25rem' }}>
         <Link to="/" style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', textDecoration: 'none' }}>
           <div style={{ background: 'linear-gradient(135deg,#f97316,#ef4444)', borderRadius: '10px', padding: '7px', display: 'flex' }}>
             <Train size={20} color="#fff" />
           </div>
           <div>
             <div style={{ color: '#fff', fontWeight: 800, fontSize: '1.05rem', letterSpacing: '-0.02em' }}>RailReserve</div>
-            <div style={{ color: '#93c5fd', fontSize: '0.65rem', fontWeight: 500 }}>Team 11 · CSE 2271 Demo</div>
+            <div style={{ color: '#64748b', fontSize: '0.63rem', fontWeight: 500 }}>Team 11 · CSE 2271 Demo</div>
           </div>
         </Link>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-          <Link to="/lookup" className="btn btn-ghost" style={{ color: '#cbd5e1', fontSize: '0.85rem', padding: '0.45rem 0.85rem' }}>
-            <Search size={15} /> PNR Lookup
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+          <Link to="/lookup" className="btn btn-ghost" style={{ color: '#94a3b8', fontSize: '0.83rem', padding: '0.4rem 0.75rem' }}>
+            <Search size={14} /> PNR Lookup
+          </Link>
+          <Link to="/history" className="btn btn-ghost" style={{ color: '#94a3b8', fontSize: '0.83rem', padding: '0.4rem 0.75rem' }}>
+            <FileText size={14} /> My Bookings
           </Link>
           {adminToken ? (
             <>
-              <Link to="/admin" className="btn btn-ghost" style={{ color: '#cbd5e1', fontSize: '0.85rem', padding: '0.45rem 0.85rem' }}>
-                <LayoutDashboard size={15} /> Admin
+              <Link to="/admin" className="btn btn-ghost" style={{ color: '#94a3b8', fontSize: '0.83rem', padding: '0.4rem 0.75rem' }}>
+                <LayoutDashboard size={14} /> Admin
               </Link>
-              <button onClick={handleAdminLogout} className="btn btn-ghost" style={{ color: '#f87171', fontSize: '0.85rem', padding: '0.45rem 0.85rem' }}>
-                <LogOut size={15} />
+              <button onClick={handleAdminLogout} className="btn btn-ghost" style={{ color: '#f87171', fontSize: '0.83rem', padding: '0.4rem 0.65rem' }}>
+                <LogOut size={14} />
               </button>
             </>
           ) : (
-            <Link to="/admin/login" className="btn btn-ghost" style={{ color: '#cbd5e1', fontSize: '0.85rem', padding: '0.45rem 0.85rem' }}>
-              <Shield size={15} /> Admin
+            <Link to="/admin/login" className="btn btn-ghost" style={{ color: '#94a3b8', fontSize: '0.83rem', padding: '0.4rem 0.75rem' }}>
+              <Shield size={14} /> Admin
             </Link>
           )}
         </div>
@@ -74,35 +195,41 @@ function Navbar() {
 }
 
 // ============================================================
-// SEARCH PAGE (Step 1)
+// HOMEPAGE / SEARCH PAGE
 // ============================================================
 function SearchPage() {
-  const [stations, setStations] = useState<Station[]>([]);
-  const [from, setFrom] = useState('');
-  const [to, setTo] = useState('');
+  const [fromCode, setFromCode] = useState('');
+  const [fromDisplay, setFromDisplay] = useState('');
+  const [toCode, setToCode] = useState('');
+  const [toDisplay, setToDisplay] = useState('');
   const [date, setDate] = useState('');
+  const [passengers, setPassengers] = useState(1);
+  const [travelClass, setTravelClass] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const navigate = useNavigate();
 
   useEffect(() => {
-    apiClient.getStations().then(r => setStations(r.stations)).catch(() => {});
     const tomorrow = new Date();
     tomorrow.setDate(tomorrow.getDate() + 1);
     setDate(tomorrow.toISOString().split('T')[0]);
   }, []);
 
-  const handleSwap = () => { const t = from; setFrom(to); setTo(t); };
+  const handleSwap = () => {
+    const tc = fromCode, td = fromDisplay;
+    setFromCode(toCode); setFromDisplay(toDisplay);
+    setToCode(tc); setToDisplay(td);
+  };
 
   const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
-    if (!from || !to || !date) { setError('Please fill all fields'); return; }
-    if (from === to) { setError('Source and destination cannot be the same'); return; }
+    if (!fromCode || !toCode || !date) { setError('Please fill all required fields'); return; }
+    if (fromCode === toCode) { setError('Source and destination cannot be the same'); return; }
     setLoading(true);
     try {
-      const res = await apiClient.searchTrains(from, to, date);
-      navigate('/results', { state: { results: res.trains, from, to, date } });
+      const res = await apiClient.searchTrains(fromCode, toCode, date, undefined, travelClass || undefined);
+      navigate('/results', { state: { results: res.trains, from: fromCode, to: toCode, date } });
     } catch (err) {
       setError((err as Error).message);
     } finally {
@@ -111,73 +238,118 @@ function SearchPage() {
   };
 
   const quickRoutes = [
-    { from: 'SBC', to: 'MAS', label: 'Bengaluru → Chennai' },
-    { from: 'SBC', to: 'MYS', label: 'Bengaluru → Mysuru' },
-    { from: 'SBC', to: 'HYB', label: 'Bengaluru → Hyderabad' },
-    { from: 'MAS', to: 'TVC', label: 'Chennai → Trivandrum' },
+    { from: 'SBC', fromD: 'SBC — Bengaluru', to: 'MAS', toD: 'MAS — Chennai',   label: 'Bengaluru → Chennai',   emoji: '🚄' },
+    { from: 'SBC', fromD: 'SBC — Bengaluru', to: 'MYS', toD: 'MYS — Mysuru',    label: 'Bengaluru → Mysuru',    emoji: '🚆' },
+    { from: 'MAS', fromD: 'MAS — Chennai',   to: 'TVC', toD: 'TVC — Trivandrum', label: 'Chennai → Trivandrum',  emoji: '🌴' },
+    { from: 'SBC', fromD: 'SBC — Bengaluru', to: 'HYB', toD: 'HYB — Hyderabad', label: 'Bengaluru → Hyderabad', emoji: '🕌' },
+    { from: 'ERS', fromD: 'ERS — Kochi',     to: 'NDLS',toD: 'NDLS — New Delhi', label: 'Kochi → Delhi',         emoji: '🏛️' },
+    { from: 'CSTM',fromD:'CSTM — Mumbai',    to: 'PUNE',toD: 'PUNE — Pune',      label: 'Mumbai → Pune',         emoji: '🌆' },
+  ];
+
+  const features = [
+    { icon: <Shield size={20} color="#2563eb" />, title: 'Zero Overbooking',    desc: 'ACID transactions prevent double-booking' },
+    { icon: <RefreshCw size={20} color="#7c3aed" />, title: 'WL Promotion',     desc: 'FIFO waiting-list seat allocation' },
+    { icon: <Ticket size={20} color="#ea580c" />, title: 'Instant E-Tickets',  desc: 'PNR + printable ticket on confirmation' },
+    { icon: <Activity size={20} color="#16a34a" />, title: '55+ Stations',      desc: '22 demo trains across South & North India' },
   ];
 
   return (
     <div style={{ flex: 1 }}>
       {/* Hero */}
-      <div className="bg-hero" style={{ padding: '3.5rem 1.25rem 5rem' }}>
-        <div className="container-main">
-          <div style={{ textAlign: 'center', marginBottom: '2.5rem' }}>
-            <div className="badge badge-superfast" style={{ marginBottom: '1rem', fontSize: '0.75rem' }}>
+      <div className="bg-hero" style={{ padding: '3.5rem 1.25rem 6rem', position: 'relative' }}>
+        <div className="container-main" style={{ position: 'relative', zIndex: 1 }}>
+          <div style={{ textAlign: 'center', marginBottom: '2.25rem' }}>
+            <div className="badge badge-demo" style={{ marginBottom: '1rem' }}>
               ⚠️ Academic Demonstration · Team 11 · CSE 2271
             </div>
-            <h1 style={{ color: '#fff', fontSize: 'clamp(1.8rem,4vw,2.8rem)', fontWeight: 800, marginBottom: '0.75rem', letterSpacing: '-0.02em' }}>
+            <h1 style={{ color: '#fff', fontSize: 'clamp(1.75rem,4vw,2.75rem)', fontWeight: 900, marginBottom: '0.65rem', letterSpacing: '-0.03em', lineHeight: 1.15 }}>
               Book Train Tickets
-              <span style={{ color: '#60a5fa' }}> Instantly</span>
+              <span style={{ color: '#f97316' }}> Across India</span>
             </h1>
-            <p style={{ color: '#94a3b8', fontSize: '1.05rem', maxWidth: '460px', margin: '0 auto' }}>
-              Fictional railway reservation demo — search, book, cancel, and manage tickets.
+            <p style={{ color: '#94a3b8', fontSize: '1rem', maxWidth: '440px', margin: '0 auto', lineHeight: 1.6 }}>
+              Search 22 demo trains, 55 stations, real booking flows and e-tickets — all academic demonstration data.
             </p>
           </div>
 
-          {/* Search Box */}
-          <div className="card slide-up" style={{ padding: '1.75rem' }}>
+          {/* Search Card */}
+          <div className="glass-card" style={{ borderRadius: '20px', padding: '1.75rem 2rem' }}>
             <form onSubmit={handleSearch}>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr auto 1fr', gap: '0.75rem', alignItems: 'end', marginBottom: '1rem' }}>
-                <div>
-                  <label className="input-label">From Station</label>
-                  <select className="input" value={from} onChange={e => setFrom(e.target.value)} required>
-                    <option value="">Select departure</option>
-                    {stations.map(s => (
-                      <option key={s.code} value={s.code}>{s.code} — {s.city}</option>
-                    ))}
-                  </select>
-                </div>
-                <div style={{ paddingBottom: '0.1rem' }}>
-                  <button type="button" onClick={handleSwap} className="btn btn-outline" style={{ padding: '0.65rem', borderRadius: '50%' }}>
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                      <path d="M8 3L4 7l4 4M4 7h16M16 21l4-4-4-4M20 17H4"/>
-                    </svg>
+              {/* Station selectors */}
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 48px 1fr', gap: '0.65rem', alignItems: 'end', marginBottom: '1rem' }}>
+                <StationAutocomplete
+                  id="from-station"
+                  label="From Station"
+                  placeholder="e.g. Bengaluru or SBC"
+                  value={fromCode}
+                  displayValue={fromDisplay}
+                  icon={<Navigation size={15} />}
+                  onSelect={(code, disp) => { setFromCode(code); setFromDisplay(disp); }}
+                />
+                <div style={{ paddingBottom: '0.05rem', display: 'flex', alignItems: 'flex-end' }}>
+                  <button
+                    type="button"
+                    onClick={handleSwap}
+                    className="btn btn-outline"
+                    style={{ padding: '0.7rem', borderRadius: '50%', width: '44px', height: '44px' }}
+                    title="Swap stations"
+                  >
+                    <ArrowRightLeft size={16} />
                   </button>
                 </div>
-                <div>
-                  <label className="input-label">To Station</label>
-                  <select className="input" value={to} onChange={e => setTo(e.target.value)} required>
-                    <option value="">Select destination</option>
-                    {stations.map(s => (
-                      <option key={s.code} value={s.code}>{s.code} — {s.city}</option>
-                    ))}
-                  </select>
-                </div>
+                <StationAutocomplete
+                  id="to-station"
+                  label="To Station"
+                  placeholder="e.g. Chennai or MAS"
+                  value={toCode}
+                  displayValue={toDisplay}
+                  icon={<MapPin size={15} />}
+                  onSelect={(code, disp) => { setToCode(code); setToDisplay(disp); }}
+                />
               </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: '0.75rem', alignItems: 'end' }}>
+              {/* Date + class + passengers */}
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr auto', gap: '0.65rem', alignItems: 'end' }}>
                 <div>
-                  <label className="input-label">Journey Date</label>
+                  <label className="input-label" htmlFor="journey-date">Journey Date</label>
                   <input
-                    type="date" className="input" value={date}
-                    min={getMinDate()} max={getMaxDate()}
-                    onChange={e => setDate(e.target.value)} required
+                    id="journey-date"
+                    type="date"
+                    className="input"
+                    value={date}
+                    min={getMinDate()}
+                    max={getMaxDate()}
+                    onChange={e => setDate(e.target.value)}
+                    required
                   />
                 </div>
-                <button type="submit" className="btn btn-accent pulse-accent" disabled={loading}
-                  style={{ padding: '0.75rem 2rem', fontSize: '1rem' }}>
-                  {loading ? <><span className="spinner" style={{ width: '1.1rem', height: '1.1rem', borderWidth: '2px' }} /> Searching…</> : <><Search size={18} /> Search Trains</>}
+                <div>
+                  <label className="input-label" htmlFor="travel-class">Travel Class</label>
+                  <select id="travel-class" className="input" value={travelClass} onChange={e => setTravelClass(e.target.value)}>
+                    <option value="">All Classes</option>
+                    <option value="1A">1A — AC First Class</option>
+                    <option value="2A">2A — AC 2 Tier</option>
+                    <option value="3A">3A — AC 3 Tier</option>
+                    <option value="SL">SL — Sleeper</option>
+                    <option value="CC">CC — Chair Car</option>
+                    <option value="2S">2S — Second Sitting</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="input-label" htmlFor="passengers">Passengers</label>
+                  <select id="passengers" className="input" value={passengers} onChange={e => setPassengers(Number(e.target.value))}>
+                    {[1,2,3,4,5,6].map(n => <option key={n} value={n}>{n} {n === 1 ? 'Adult' : 'Adults'}</option>)}
+                  </select>
+                </div>
+                <button
+                  type="submit"
+                  className="btn btn-accent btn-lg pulse-accent"
+                  disabled={loading}
+                  style={{ padding: '0.72rem 2rem', whiteSpace: 'nowrap' }}
+                >
+                  {loading
+                    ? <><span className="spinner" style={{ width: '1.1rem', height: '1.1rem', borderWidth: '2px' }} /> Searching…</>
+                    : <><Search size={18} /> Search</>
+                  }
                 </button>
               </div>
 
@@ -187,33 +359,41 @@ function SearchPage() {
                 </div>
               )}
             </form>
-          </div>
 
-          {/* Quick routes */}
-          <div style={{ marginTop: '1.25rem', display: 'flex', flexWrap: 'wrap', gap: '0.5rem', justifyContent: 'center' }}>
-            {quickRoutes.map(r => (
-              <button key={r.label} className="btn glass" style={{ color: '#cbd5e1', fontSize: '0.82rem', padding: '0.4rem 0.9rem' }}
-                onClick={() => { setFrom(r.from); setTo(r.to); }}>
-                {r.label}
-              </button>
-            ))}
+            {/* Quick routes */}
+            <div style={{ marginTop: '1.25rem', borderTop: '1px solid #e2e8f0', paddingTop: '1rem' }}>
+              <div style={{ fontSize: '0.78rem', fontWeight: 600, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '0.65rem' }}>
+                Popular Routes
+              </div>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
+                {quickRoutes.map(r => (
+                  <button
+                    key={r.label}
+                    className="popular-route-card"
+                    style={{ fontSize: '0.82rem', fontWeight: 500, color: '#374151' }}
+                    onClick={() => {
+                      setFromCode(r.from); setFromDisplay(r.fromD);
+                      setToCode(r.to); setToDisplay(r.toD);
+                    }}
+                  >
+                    <span style={{ fontSize: '1rem' }}>{r.emoji}</span>
+                    {r.label}
+                  </button>
+                ))}
+              </div>
+            </div>
           </div>
         </div>
       </div>
 
       {/* Features */}
-      <div className="container-wide" style={{ padding: '3rem 1.25rem' }}>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(200px,1fr))', gap: '1.25rem' }}>
-          {[
-            { icon: <Shield size={22} color="#2563eb" />, title: 'ACID Transactions', desc: 'Zero-overbooking guarantee with SQLite BEGIN IMMEDIATE' },
-            { icon: <Users size={22} color="#16a34a" />, title: 'Multi-Passenger', desc: 'Book for up to 6 passengers per transaction' },
-            { icon: <RefreshCw size={22} color="#7c3aed" />, title: 'WL Promotion', desc: 'Automatic FIFO waiting-list seat promotion' },
-            { icon: <Ticket size={22} color="#ea580c" />, title: 'Digital E-Ticket', desc: 'Instant PNR generation with printable ticket' },
-          ].map(f => (
-            <div key={f.title} className="card" style={{ padding: '1.5rem', display: 'flex', gap: '1rem', alignItems: 'flex-start' }}>
-              <div style={{ background: '#f8fafc', borderRadius: '0.75rem', padding: '0.6rem', flexShrink: 0 }}>{f.icon}</div>
+      <div className="container-wide" style={{ padding: '2.5rem 1.25rem' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(220px,1fr))', gap: '1rem' }}>
+          {features.map(f => (
+            <div key={f.title} className="card card-hover" style={{ padding: '1.35rem 1.5rem', display: 'flex', gap: '1rem', alignItems: 'flex-start' }}>
+              <div style={{ background: '#f8fafc', borderRadius: '10px', padding: '0.6rem', flexShrink: 0 }}>{f.icon}</div>
               <div>
-                <div style={{ fontWeight: 700, fontSize: '0.9rem', marginBottom: '0.25rem' }}>{f.title}</div>
+                <div style={{ fontWeight: 700, fontSize: '0.9rem', marginBottom: '0.25rem', color: '#0f172a' }}>{f.title}</div>
                 <div style={{ color: '#64748b', fontSize: '0.82rem', lineHeight: 1.5 }}>{f.desc}</div>
               </div>
             </div>
@@ -225,7 +405,7 @@ function SearchPage() {
 }
 
 // ============================================================
-// RESULTS PAGE (Step 2)
+// RESULTS PAGE
 // ============================================================
 function ResultsPage() {
   const location = useLocation();
@@ -233,67 +413,131 @@ function ResultsPage() {
   const state = location.state as { results: TrainResult[]; from: string; to: string; date: string } | null;
 
   const [trains, setTrains] = useState<TrainResult[]>(state?.results || []);
-  const [sortBy, setSortBy] = useState<'time' | 'fare' | 'duration'>('time');
+  const [sortBy, setSortBy] = useState<'time' | 'fare' | 'duration' | 'arrival'>('time');
+  const [filterAvail, setFilterAvail] = useState('');
+  const [filterClass, setFilterClass] = useState('');
+  const [loading, setLoading] = useState(false);
 
-  useEffect(() => {
-    if (!state) navigate('/');
-  }, [state, navigate]);
+  useEffect(() => { if (!state) navigate('/'); }, [state, navigate]);
 
-  const sorted = [...trains].sort((a, b) => {
-    if (sortBy === 'fare') {
-      const fa = Math.min(...a.classes.map(c => c.total_fare));
-      const fb = Math.min(...b.classes.map(c => c.total_fare));
-      return fa - fb;
-    }
-    if (sortBy === 'duration') return a.journey_duration_minutes - b.journey_duration_minutes;
-    return a.departure_time.localeCompare(b.departure_time);
-  });
+  // Re-query with filters
+  const applyFilters = useCallback(async (sort: string, cls: string, avail: string) => {
+    if (!state) return;
+    setLoading(true);
+    try {
+      const res = await apiClient.searchTrains(state.from, state.to, state.date, sort, cls || undefined, avail || undefined);
+      setTrains(res.trains);
+    } catch { /* keep current */ }
+    finally { setLoading(false); }
+  }, [state]);
+
+  useEffect(() => { applyFilters(sortBy, filterClass, filterAvail); }, [sortBy, filterClass, filterAvail]);
 
   if (!state) return null;
 
+  const allClasses = [...new Set(trains.flatMap(t => t.classes.map(c => c.class_code)))];
+
   return (
-    <div style={{ flex: 1 }}>
+    <div style={{ flex: 1, background: 'var(--bg-page)' }}>
       {/* Header */}
-      <div style={{ background: 'linear-gradient(135deg,#0f172a,#1e3a5f)', padding: '1.5rem 1.25rem' }}>
-        <div className="container-main">
-          <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', flexWrap: 'wrap' }}>
-            <button onClick={() => navigate('/')} className="btn btn-ghost" style={{ color: '#94a3b8', padding: '0.4rem 0.75rem', fontSize: '0.85rem' }}>
-              <ArrowLeft size={16} /> Back
+      <div style={{ background: 'linear-gradient(135deg,#0a0f1e,#0f2444)', padding: '1.25rem 1.25rem 1.5rem' }}>
+        <div className="container-wide">
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
+            <button onClick={() => navigate('/')} className="btn btn-ghost" style={{ color: '#64748b', padding: '0.4rem 0.7rem', fontSize: '0.85rem' }}>
+              <ArrowLeft size={15} /> Back
             </button>
             <div style={{ flex: 1 }}>
-              <div style={{ color: '#fff', fontWeight: 700, fontSize: '1.1rem' }}>
-                {state.from} → {state.to}
+              <div style={{ color: '#fff', fontWeight: 800, fontSize: '1.15rem' }}>
+                {state.from} <span style={{ color: '#f97316' }}>→</span> {state.to}
               </div>
-              <div style={{ color: '#94a3b8', fontSize: '0.82rem' }}>{formatDate(state.date)} · {trains.length} train{trains.length !== 1 ? 's' : ''} found</div>
+              <div style={{ color: '#64748b', fontSize: '0.82rem', marginTop: '0.1rem' }}>
+                {formatDate(state.date)} · {loading ? 'Searching…' : `${trains.length} train${trains.length !== 1 ? 's' : ''} found`}
+              </div>
             </div>
-            <div style={{ display: 'flex', gap: '0.4rem', flexShrink: 0 }}>
-              {(['time', 'fare', 'duration'] as const).map(s => (
-                <button key={s} onClick={() => setSortBy(s)} className="btn"
-                  style={{ padding: '0.35rem 0.8rem', fontSize: '0.8rem', fontWeight: 600,
-                    background: sortBy === s ? '#2563eb' : 'rgba(255,255,255,0.08)',
-                    color: sortBy === s ? '#fff' : '#94a3b8', borderRadius: '9999px' }}>
-                  {s === 'time' ? 'Time' : s === 'fare' ? 'Fare' : 'Duration'}
-                </button>
-              ))}
-            </div>
+            <Link to="/" className="btn btn-outline" style={{ fontSize: '0.82rem', color: '#94a3b8', borderColor: 'rgba(255,255,255,.15)' }}>
+              <Search size={14} /> New Search
+            </Link>
           </div>
         </div>
       </div>
 
-      {/* Train cards */}
-      <div className="container-main" style={{ padding: '1.5rem 1.25rem' }}>
-        {sorted.length === 0 ? (
-          <div className="card" style={{ padding: '3rem', textAlign: 'center' }}>
+      {/* Filters */}
+      <div className="container-wide" style={{ padding: '0.85rem 1.25rem' }}>
+        <div className="filter-bar">
+          <Filter size={14} style={{ color: '#94a3b8', flexShrink: 0 }} />
+          <span style={{ fontSize: '0.78rem', fontWeight: 600, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.05em', marginRight: '0.25rem' }}>
+            Sort:
+          </span>
+          {(['time','fare','duration','arrival'] as const).map(s => (
+            <button key={s} className={`filter-chip ${sortBy === s ? 'active' : ''}`} onClick={() => setSortBy(s)}>
+              {s === 'time' ? '⏰ Departure' : s === 'fare' ? '₹ Fare' : s === 'duration' ? '⌚ Duration' : '🏁 Arrival'}
+            </button>
+          ))}
+          <div style={{ width: '1px', background: '#e2e8f0', height: '20px', margin: '0 0.25rem' }} />
+          <span style={{ fontSize: '0.78rem', fontWeight: 600, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.05em', marginRight: '0.25rem' }}>
+            Filter:
+          </span>
+          <button className={`filter-chip ${filterAvail === 'AVAILABLE' ? 'active' : ''}`}
+            onClick={() => setFilterAvail(filterAvail === 'AVAILABLE' ? '' : 'AVAILABLE')}>
+            ✅ Available
+          </button>
+          <button className={`filter-chip ${filterAvail === 'WL' ? 'active' : ''}`}
+            onClick={() => setFilterAvail(filterAvail === 'WL' ? '' : 'WL')}>
+            📋 Waitlist
+          </button>
+          <select className="filter-select" value={filterClass} onChange={e => setFilterClass(e.target.value)}>
+            <option value="">All Classes</option>
+            {(['1A','2A','3A','SL','CC','2S'] as ClassCode[]).map(c => (
+              <option key={c} value={c}>{c}</option>
+            ))}
+          </select>
+          {(filterClass || filterAvail) && (
+            <button className="filter-chip" style={{ color: '#dc2626', borderColor: 'rgba(220,38,38,.3)' }}
+              onClick={() => { setFilterClass(''); setFilterAvail(''); }}>
+              ✕ Clear
+            </button>
+          )}
+        </div>
+      </div>
+
+      {/* Train list */}
+      <div className="container-wide" style={{ padding: '0.5rem 1.25rem 2.5rem' }}>
+        {loading ? (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+            {[1,2,3].map(i => (
+              <div key={i} className="skeleton-card" style={{ height: '140px' }}>
+                <div className="skeleton skeleton-line" style={{ width: '30%', marginBottom: '0.75rem' }} />
+                <div className="skeleton skeleton-line" style={{ width: '60%', marginBottom: '0.5rem' }} />
+                <div className="skeleton skeleton-line" style={{ width: '45%' }} />
+              </div>
+            ))}
+          </div>
+        ) : trains.length === 0 ? (
+          <div className="card" style={{ padding: '3.5rem', textAlign: 'center' }}>
             <Train size={48} color="#cbd5e1" style={{ marginBottom: '1rem' }} />
-            <div style={{ fontSize: '1.1rem', fontWeight: 600, color: '#374151', marginBottom: '0.5rem' }}>No trains found</div>
-            <div style={{ color: '#64748b', fontSize: '0.9rem', marginBottom: '1.5rem' }}>No trains operate on this route for the selected date.</div>
+            <div style={{ fontSize: '1.1rem', fontWeight: 700, color: '#374151', marginBottom: '0.5rem' }}>No trains found</div>
+            <div style={{ color: '#64748b', fontSize: '0.9rem', marginBottom: '1.5rem' }}>
+              {filterClass || filterAvail
+                ? 'No trains match the selected filters. Try clearing some filters.'
+                : 'No trains operate on this route for the selected date.'}
+            </div>
+            {(filterClass || filterAvail) && (
+              <button className="btn btn-outline" onClick={() => { setFilterClass(''); setFilterAvail(''); }} style={{ marginRight: '0.65rem' }}>
+                Clear Filters
+              </button>
+            )}
             <button onClick={() => navigate('/')} className="btn btn-primary">Search Again</button>
           </div>
         ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-            {sorted.map(train => (
-              <TrainCard key={`${train.train_number}-${train.schedule_id}`} train={train} date={state.date}
-                from={state.from} to={state.to} />
+          <div className="stagger" style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
+            {trains.map(train => (
+              <TrainCard
+                key={`${train.train_number}-${train.schedule_id}`}
+                train={train}
+                date={state.date}
+                from={state.from}
+                to={state.to}
+              />
             ))}
           </div>
         )}
@@ -302,86 +546,185 @@ function ResultsPage() {
   );
 }
 
+// Train card with stop timeline
 function TrainCard({ train, date, from, to }: { train: TrainResult; date: string; from: string; to: string }) {
   const navigate = useNavigate();
   const [expanded, setExpanded] = useState(false);
+  const [stops, setStops] = useState<Array<{
+    stop_sequence: number; station_code: string; station_name: string; city: string;
+    arrival_time: string | null; departure_time: string | null; day_offset: number; distance_km: number;
+  }>>([]);
+  const [loadingStops, setLoadingStops] = useState(false);
 
-  const availableClasses = train.classes.filter(c => c.availability_status !== 'NOT_AVAILABLE');
   const cheapest = train.classes.reduce((a, b) => a.total_fare < b.total_fare ? a : b, train.classes[0]);
+  const hasAvailable = train.classes.some(c => c.availability_status === 'AVAILABLE');
+
+  const toggleExpand = async () => {
+    if (!expanded && stops.length === 0) {
+      setLoadingStops(true);
+      try {
+        const r = await apiClient.getTrainStops(train.train_id);
+        setStops(r.stops);
+      } catch { /* ignore */ }
+      finally { setLoadingStops(false); }
+    }
+    setExpanded(!expanded);
+  };
+
+  const getTypeBadge = (type: string) => {
+    if (type === 'SUPERFAST') return 'badge badge-superfast';
+    if (type === 'MAIL') return 'badge badge-mail';
+    if (type === 'EXPRESS') return 'badge badge-express';
+    return 'badge badge-passenger';
+  };
 
   return (
-    <div className="train-card">
-      {/* Header row */}
-      <div style={{ padding: '1.25rem 1.5rem', display: 'grid', gridTemplateColumns: '1fr auto 1fr auto', gap: '1rem', alignItems: 'center' }}>
-        {/* Train info */}
-        <div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.2rem' }}>
-            <span style={{ fontWeight: 800, fontSize: '1rem', color: '#1e3a5f' }}>{train.train_number}</span>
-            <span className={getTrainTypeBadge(train.train_type)}>{train.train_type}</span>
+    <div className="train-card fade-in">
+      <div className="train-card-header">
+        {/* Train identity */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', flex: 1, minWidth: 0 }}>
+          <div style={{ background: 'linear-gradient(135deg,#1e3a5f,#2d5a8e)', borderRadius: '8px', padding: '0.4rem 0.5rem', flexShrink: 0 }}>
+            <Train size={16} color="#fff" />
           </div>
-          <div style={{ color: '#374151', fontSize: '0.88rem', fontWeight: 500 }}>{train.train_name}</div>
-        </div>
-
-        {/* Journey timeline */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-          <div style={{ textAlign: 'center' }}>
-            <div style={{ fontSize: '1.35rem', fontWeight: 800, color: '#0f172a' }}>{formatTime(train.departure_time)}</div>
-            <div style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: 600 }}>{from}</div>
-          </div>
-          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.1rem' }}>
-            <div style={{ fontSize: '0.72rem', color: '#64748b' }}>{formatDuration(train.journey_duration_minutes)}</div>
-            <div style={{ width: '80px', height: '2px', background: 'linear-gradient(90deg,#2563eb,#60a5fa)', borderRadius: '2px', position: 'relative' }}>
-              <div style={{ position: 'absolute', right: 0, top: '-5px', width: '6px', height: '6px', borderRadius: '50%', background: '#60a5fa' }} />
+          <div style={{ minWidth: 0 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+              <span style={{ fontWeight: 800, fontSize: '0.92rem', color: '#1e3a5f', fontVariantNumeric: 'tabular-nums' }}>
+                {train.train_number}
+              </span>
+              <span className={getTypeBadge(train.train_type)}>{train.train_type}</span>
             </div>
-            {train.is_overnight && <div style={{ fontSize: '0.65rem', color: '#7c3aed', fontWeight: 600 }}>🌙 Overnight</div>}
+            <div style={{ color: '#475569', fontSize: '0.85rem', fontWeight: 500, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+              {train.train_name}
+            </div>
+          </div>
+        </div>
+
+        {/* Journey times */}
+        <div className="train-route-row" style={{ flex: 2, justifyContent: 'center', marginBottom: 0 }}>
+          <div style={{ textAlign: 'center' }}>
+            <div className="train-time">{formatTime(train.departure_time)}</div>
+            <div className="train-station-code">{from}</div>
+          </div>
+          <div className="train-duration-line">
+            <div className="train-duration-label">{formatDuration(train.journey_duration_minutes)}</div>
+            <div className="train-duration-bar" />
+            {train.is_overnight && (
+              <div style={{ fontSize: '0.65rem', color: '#7c3aed', fontWeight: 700, marginTop: '2px' }}>🌙 Overnight</div>
+            )}
           </div>
           <div style={{ textAlign: 'center' }}>
-            <div style={{ fontSize: '1.35rem', fontWeight: 800, color: '#0f172a' }}>{formatTime(train.arrival_time)}</div>
-            <div style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: 600 }}>{to}{train.arrival_day_offset > 0 ? <span style={{ color: '#7c3aed', marginLeft: '2px' }}>+{train.arrival_day_offset}</span> : ''}</div>
+            <div className="train-time">{formatTime(train.arrival_time)}</div>
+            <div className="train-station-code">
+              {to}
+              {train.arrival_day_offset > 0 && (
+                <span style={{ color: '#7c3aed', marginLeft: '2px', fontWeight: 700 }}>+{train.arrival_day_offset}</span>
+              )}
+            </div>
           </div>
         </div>
 
-        {/* Fare summary */}
-        <div style={{ textAlign: 'right' }}>
-          <div style={{ fontSize: '0.72rem', color: '#64748b', marginBottom: '0.1rem' }}>Starts from</div>
-          <div style={{ fontSize: '1.4rem', fontWeight: 800, color: '#1e3a5f' }}>{formatINR(cheapest.total_fare)}</div>
-          <div style={{ fontSize: '0.72rem', color: '#64748b' }}>{train.distance_km} km</div>
+        {/* Fare + actions */}
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '0.35rem', flexShrink: 0 }}>
+          <div>
+            <div style={{ fontSize: '0.68rem', color: '#94a3b8', textAlign: 'right' }}>Starts from</div>
+            <div style={{ fontSize: '1.35rem', fontWeight: 900, color: '#1e3a5f', lineHeight: 1.1, fontVariantNumeric: 'tabular-nums' }}>
+              {formatINR(cheapest.total_fare)}
+            </div>
+            <div style={{ fontSize: '0.68rem', color: '#94a3b8', textAlign: 'right' }}>{train.distance_km} km</div>
+          </div>
+          <div style={{ display: 'flex', gap: '0.4rem' }}>
+            <button
+              onClick={toggleExpand}
+              className="btn btn-outline btn-sm"
+              style={{ fontSize: '0.78rem' }}
+            >
+              {loadingStops ? <span className="spinner" style={{ width: '0.8rem', height: '0.8rem', borderWidth: '2px' }} />
+                : expanded ? <><ChevronUp size={13} /> Hide</> : <><ChevronDown size={13} /> Details</>}
+            </button>
+            {hasAvailable && (
+              <button
+                onClick={toggleExpand}
+                className="btn btn-accent btn-sm"
+                style={{ fontSize: '0.78rem' }}
+              >
+                Book <ChevronRight size={13} />
+              </button>
+            )}
+          </div>
         </div>
-
-        {/* Expand button */}
-        <button onClick={() => setExpanded(!expanded)} className="btn btn-primary" style={{ whiteSpace: 'nowrap' }}>
-          Book <ChevronRight size={16} style={{ transform: expanded ? 'rotate(90deg)' : 'none', transition: 'transform 0.2s' }} />
-        </button>
       </div>
 
-      {/* Class availability (expanded) */}
+      {/* Expanded: class chips + stop timeline */}
       {expanded && (
-        <div style={{ padding: '0 1.5rem 1.25rem', borderTop: '1px solid #f1f5f9' }} className="fade-in">
-          <div style={{ fontSize: '0.82rem', fontWeight: 600, color: '#64748b', marginBottom: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-            Select Class
+        <div style={{ borderTop: '1px solid #f1f5f9', padding: '1rem 1.25rem 1.25rem' }} className="fade-in">
+          {/* Class availability */}
+          <div style={{ marginBottom: '1rem' }}>
+            <div style={{ fontSize: '0.75rem', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '0.6rem' }}>
+              Select Class & Book
+            </div>
+            <div className="class-chips">
+              {train.classes.map(cls => {
+                const avail = cls.availability_status;
+                const chipClass = avail === 'AVAILABLE' ? 'available' : avail === 'WAITING_LIST' ? 'waiting' : 'unavailable';
+                return (
+                  <button
+                    key={cls.class_code}
+                    className={`class-chip ${chipClass}`}
+                    disabled={avail === 'NOT_AVAILABLE'}
+                    onClick={() => avail !== 'NOT_AVAILABLE' && navigate('/passenger', {
+                      state: { train, selectedClass: cls, date, from, to }
+                    })}
+                  >
+                    <div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', marginBottom: '2px' }}>
+                        <span style={{ fontWeight: 800, fontSize: '0.88rem' }}>{cls.class_code}</span>
+                        <span style={{ fontSize: '0.7rem', opacity: 0.8 }}>{cls.availability_label}</span>
+                      </div>
+                      <div style={{ fontSize: '0.72rem', opacity: 0.8, marginBottom: '2px' }}>{cls.class_name}</div>
+                      <div style={{ fontWeight: 800, fontSize: '0.95rem' }}>{formatINR(cls.total_fare)}</div>
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
           </div>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(160px,1fr))', gap: '0.65rem' }}>
-            {train.classes.map(cls => {
-              const cc = classCodeColor(cls.class_code);
-              const unavail = cls.availability_status === 'NOT_AVAILABLE';
-              return (
-                <button key={cls.class_code}
-                  className={`class-chip ${unavail ? 'unavailable' : ''}`}
-                  disabled={unavail}
-                  onClick={() => !unavail && navigate('/passenger', { state: { train, selectedClass: cls, date, from, to } })}
-                  style={{ background: unavail ? '#f8fafc' : cc.bg }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.25rem' }}>
-                    <span style={{ fontWeight: 700, fontSize: '0.9rem', color: cc.text }}>{cls.class_code}</span>
-                    <span className={`badge ${cls.availability_status === 'AVAILABLE' ? 'badge-available' : cls.availability_status === 'WAITING_LIST' ? 'badge-wl' : 'badge-unavail'}`}>
-                      {cls.availability_label}
-                    </span>
-                  </div>
-                  <div style={{ fontSize: '0.75rem', color: '#64748b', marginBottom: '0.2rem' }}>{cls.class_name}</div>
-                  <div style={{ fontWeight: 700, color: '#0f172a', fontSize: '0.95rem' }}>{formatINR(cls.total_fare)}</div>
-                </button>
-              );
-            })}
-          </div>
+
+          {/* Intermediate stops */}
+          {stops.length > 0 && (
+            <div>
+              <div style={{ fontSize: '0.75rem', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '0.75rem' }}>
+                Route ({stops.length} stops)
+              </div>
+              <div style={{ display: 'flex', overflowX: 'auto', gap: '0', paddingBottom: '4px' }}>
+                {stops.map((s, i) => {
+                  const isOrigin = s.station_code === from;
+                  const isDest = s.station_code === to;
+                  const isHighlighted = isOrigin || isDest;
+                  const time = isOrigin ? s.departure_time : (i === stops.length - 1 ? s.arrival_time : (s.arrival_time || s.departure_time));
+                  return (
+                    <div key={s.stop_sequence} style={{ display: 'flex', alignItems: 'center', flexShrink: 0 }}>
+                      <div style={{ textAlign: 'center', minWidth: '80px' }}>
+                        <div style={{
+                          width: 12, height: 12, borderRadius: '50%', margin: '0 auto 4px',
+                          background: isOrigin ? '#f97316' : isDest ? '#1e3a5f' : '#e2e8f0',
+                          border: isHighlighted ? `3px solid ${isOrigin ? '#f97316' : '#1e3a5f'}` : '2px solid #e2e8f0',
+                          boxSizing: 'border-box'
+                        }} />
+                        <div style={{ fontSize: '0.7rem', fontWeight: isHighlighted ? 700 : 500, color: isHighlighted ? '#0f172a' : '#94a3b8' }}>
+                          {s.station_code}
+                        </div>
+                        {time && <div style={{ fontSize: '0.65rem', color: '#64748b' }}>{time}</div>}
+                        {s.day_offset > 0 && <div style={{ fontSize: '0.6rem', color: '#7c3aed' }}>+{s.day_offset}d</div>}
+                      </div>
+                      {i < stops.length - 1 && (
+                        <div style={{ width: '32px', height: '2px', background: 'linear-gradient(to right,#e2e8f0,#e2e8f0)', flexShrink: 0 }} />
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
         </div>
       )}
     </div>
@@ -389,7 +732,7 @@ function TrainCard({ train, date, from, to }: { train: TrainResult; date: string
 }
 
 // ============================================================
-// PASSENGER FORM PAGE (Step 3)
+// PASSENGER FORM PAGE
 // ============================================================
 function PassengerPage() {
   const location = useLocation();
@@ -423,12 +766,12 @@ function PassengerPage() {
     const e: Record<string, string> = {};
     passengers.forEach((p, i) => {
       if (!p.passenger_name.trim()) e[`name_${i}`] = 'Name required';
-      else if (!/^[A-Za-z\s.'-]{2,60}$/.test(p.passenger_name.trim())) e[`name_${i}`] = 'Letters only (2-60 chars)';
+      else if (!/^[A-Za-z\s.''-]{2,60}$/.test(p.passenger_name.trim())) e[`name_${i}`] = 'Letters only (2–60 chars)';
       if (p.age === '' || Number(p.age) < 1 || Number(p.age) > 120) e[`age_${i}`] = 'Age 1–120';
       if (!p.gender) e[`gender_${i}`] = 'Select gender';
     });
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) e.email = 'Valid email required';
-    if (!/^[6-9]\d{9}$/.test(phone)) e.phone = '10-digit mobile (6-9...)';
+    if (!/^[6-9]\d{9}$/.test(phone)) e.phone = '10-digit Indian mobile number';
     setErrors(e);
     return Object.keys(e).length === 0;
   };
@@ -466,76 +809,80 @@ function PassengerPage() {
     }
   };
 
-  const totalFare = selectedClass.total_fare * passengers.length + 60 * passengers.length + (train.train_type === 'SUPERFAST' ? 45 * passengers.length : 0);
+  const reservationFee = 60;
+  const superfastCharge = (train.train_type === 'SUPERFAST' || train.train_type === 'MAIL') ? 45 : 0;
+  const totalFare = (selectedClass.base_fare + reservationFee + superfastCharge) * passengers.length;
 
   return (
-    <div style={{ flex: 1, background: '#f8fafc', padding: '2rem 1.25rem' }}>
+    <div style={{ flex: 1, background: 'var(--bg-page)', padding: '2rem 1.25rem' }}>
       <div className="container-main">
-        {/* Progress */}
         <StepBar current={3} />
 
-        {/* Journey summary */}
-        <div className="card" style={{ padding: '1.25rem 1.5rem', marginBottom: '1.5rem', background: 'linear-gradient(135deg,#1e3a5f,#0c4a6e)', color: '#fff' }}>
-          <div style={{ display: 'flex', gap: '1.5rem', flexWrap: 'wrap', alignItems: 'center' }}>
-            <div>
-              <div style={{ fontSize: '0.72rem', color: '#93c5fd', marginBottom: '0.1rem', textTransform: 'uppercase', fontWeight: 600 }}>Train</div>
-              <div style={{ fontWeight: 700 }}>{train.train_number} · {train.train_name}</div>
+        {/* Journey summary banner */}
+        <div style={{ background: 'linear-gradient(135deg,#0f2444,#1e3a5f)', borderRadius: 'var(--r-lg)', padding: '1.1rem 1.5rem', marginBottom: '1.25rem', display: 'flex', flexWrap: 'wrap', gap: '1.25rem', alignItems: 'center' }}>
+          {[
+            { label: 'Train', value: `${train.train_number} · ${train.train_name}` },
+            { label: 'Route', value: `${from} → ${to} · ${formatTime(train.departure_time)}` },
+            { label: 'Date', value: formatDate(date) },
+            { label: 'Class', value: `${selectedClass.class_code} — ${selectedClass.class_name}` },
+          ].map(({ label, value }) => (
+            <div key={label}>
+              <div style={{ fontSize: '0.66rem', color: '#93c5fd', textTransform: 'uppercase', letterSpacing: '0.06em', fontWeight: 600, marginBottom: '0.1rem' }}>{label}</div>
+              <div style={{ color: '#fff', fontWeight: 600, fontSize: '0.88rem' }}>{value}</div>
             </div>
-            <div>
-              <div style={{ fontSize: '0.72rem', color: '#93c5fd', marginBottom: '0.1rem', textTransform: 'uppercase', fontWeight: 600 }}>Route</div>
-              <div style={{ fontWeight: 700 }}>{from} → {to} · {formatTime(train.departure_time)}</div>
-            </div>
-            <div>
-              <div style={{ fontSize: '0.72rem', color: '#93c5fd', marginBottom: '0.1rem', textTransform: 'uppercase', fontWeight: 600 }}>Date</div>
-              <div style={{ fontWeight: 700 }}>{formatDate(date)}</div>
-            </div>
-            <div>
-              <div style={{ fontSize: '0.72rem', color: '#93c5fd', marginBottom: '0.1rem', textTransform: 'uppercase', fontWeight: 600 }}>Class</div>
-              <div style={{ fontWeight: 700 }}>{selectedClass.class_code} · {selectedClass.class_name}</div>
-            </div>
-            {isWL && <span className="badge badge-wl" style={{ marginLeft: 'auto' }}>Waiting List Mode</span>}
-          </div>
+          ))}
+          {isWL && <span className="badge badge-waiting" style={{ marginLeft: 'auto' }}>Waiting List Mode</span>}
         </div>
 
         <form onSubmit={handleSubmit}>
-          {/* Passengers */}
+          {/* Passenger details */}
           <div className="card" style={{ padding: '1.5rem', marginBottom: '1rem' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
               <h2 style={{ fontSize: '1rem', fontWeight: 700, color: '#1e3a5f', margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                 <Users size={18} /> Passenger Details
               </h2>
               {passengers.length < 6 && (
-                <button type="button" onClick={addPassenger} className="btn btn-outline" style={{ fontSize: '0.82rem', padding: '0.35rem 0.85rem' }}>
+                <button type="button" onClick={addPassenger} className="btn btn-outline btn-sm">
                   + Add Passenger
                 </button>
               )}
             </div>
 
             {passengers.map((p, i) => (
-              <div key={i} style={{ border: '1px solid #e2e8f0', borderRadius: '0.75rem', padding: '1.25rem', marginBottom: '0.75rem' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.875rem' }}>
-                  <div style={{ fontWeight: 600, color: '#374151', fontSize: '0.88rem' }}>Passenger {i + 1}</div>
-                  {i > 0 && <button type="button" onClick={() => removePassenger(i)} className="btn btn-ghost" style={{ color: '#dc2626', fontSize: '0.8rem', padding: '0.2rem 0.5rem' }}>Remove</button>}
+              <div key={i} style={{ border: '1.5px solid var(--border)', borderRadius: 'var(--r-md)', padding: '1.1rem', marginBottom: '0.75rem' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.85rem' }}>
+                  <div style={{ fontWeight: 700, color: '#1e3a5f', fontSize: '0.88rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                    <div style={{ width: '22px', height: '22px', background: '#1e3a5f', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontSize: '0.72rem', fontWeight: 800 }}>{i + 1}</div>
+                    Passenger {i + 1}
+                  </div>
+                  {i > 0 && <button type="button" onClick={() => removePassenger(i)} className="btn btn-xs" style={{ color: '#dc2626', background: 'rgba(220,38,38,.06)', border: '1px solid rgba(220,38,38,.2)' }}>✕ Remove</button>}
                 </div>
-                <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr 1fr', gap: '0.75rem' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr 1fr', gap: '0.65rem' }}>
                   <div>
-                    <label className="input-label">Full Name</label>
-                    <input className={`input ${errors[`name_${i}`] ? 'error' : ''}`} placeholder="e.g. Rahul Sharma" value={p.passenger_name} onChange={e => updatePassenger(i, 'passenger_name', e.target.value)} />
-                    {errors[`name_${i}`] && <div style={{ color: '#dc2626', fontSize: '0.75rem', marginTop: '0.2rem' }}>{errors[`name_${i}`]}</div>}
+                    <label className="input-label">Full Name *</label>
+                    <input className={`input ${errors[`name_${i}`] ? 'input-error' : ''}`}
+                      placeholder="e.g. Rahul Sharma"
+                      value={p.passenger_name}
+                      onChange={e => updatePassenger(i, 'passenger_name', e.target.value)} />
+                    {errors[`name_${i}`] && <div className="field-error"><AlertTriangle size={11} />{errors[`name_${i}`]}</div>}
                   </div>
                   <div>
-                    <label className="input-label">Age</label>
-                    <input type="number" className={`input ${errors[`age_${i}`] ? 'error' : ''}`} placeholder="25" min={1} max={120} value={p.age} onChange={e => updatePassenger(i, 'age', e.target.value)} />
-                    {errors[`age_${i}`] && <div style={{ color: '#dc2626', fontSize: '0.75rem', marginTop: '0.2rem' }}>{errors[`age_${i}`]}</div>}
+                    <label className="input-label">Age *</label>
+                    <input type="number" className={`input ${errors[`age_${i}`] ? 'input-error' : ''}`}
+                      placeholder="28" min={1} max={120}
+                      value={p.age} onChange={e => updatePassenger(i, 'age', e.target.value)} />
+                    {errors[`age_${i}`] && <div className="field-error"><AlertTriangle size={11} />{errors[`age_${i}`]}</div>}
                   </div>
                   <div>
-                    <label className="input-label">Gender</label>
-                    <select className={`input ${errors[`gender_${i}`] ? 'error' : ''}`} value={p.gender} onChange={e => updatePassenger(i, 'gender', e.target.value)}>
+                    <label className="input-label">Gender *</label>
+                    <select className={`input ${errors[`gender_${i}`] ? 'input-error' : ''}`}
+                      value={p.gender} onChange={e => updatePassenger(i, 'gender', e.target.value)}>
                       <option value="">Select</option>
                       <option value="M">Male</option>
                       <option value="F">Female</option>
                       <option value="O">Other</option>
                     </select>
+                    {errors[`gender_${i}`] && <div className="field-error"><AlertTriangle size={11} />{errors[`gender_${i}`]}</div>}
                   </div>
                   <div>
                     <label className="input-label">Berth Pref.</label>
@@ -560,50 +907,58 @@ function PassengerPage() {
             </h2>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
               <div>
-                <label className="input-label">Email Address</label>
-                <input type="email" className={`input ${errors.email ? 'error' : ''}`} placeholder="you@example.com" value={email} onChange={e => setEmail(e.target.value)} />
-                {errors.email && <div style={{ color: '#dc2626', fontSize: '0.75rem', marginTop: '0.2rem' }}>{errors.email}</div>}
+                <label className="input-label" htmlFor="email">Email Address *</label>
+                <input id="email" type="email" className={`input ${errors.email ? 'input-error' : ''}`}
+                  placeholder="you@example.com" value={email} onChange={e => setEmail(e.target.value)} />
+                {errors.email && <div className="field-error"><AlertTriangle size={11} />{errors.email}</div>}
               </div>
               <div>
-                <label className="input-label">Mobile Number</label>
-                <input type="tel" className={`input ${errors.phone ? 'error' : ''}`} placeholder="9876543210" value={phone} onChange={e => setPhone(e.target.value)} />
-                {errors.phone && <div style={{ color: '#dc2626', fontSize: '0.75rem', marginTop: '0.2rem' }}>{errors.phone}</div>}
+                <label className="input-label" htmlFor="phone">Mobile Number *</label>
+                <input id="phone" type="tel" className={`input ${errors.phone ? 'input-error' : ''}`}
+                  placeholder="9876543210" value={phone} onChange={e => setPhone(e.target.value)} />
+                {errors.phone && <div className="field-error"><AlertTriangle size={11} />{errors.phone}</div>}
               </div>
             </div>
           </div>
 
           {/* Fare summary */}
-          <div className="card" style={{ padding: '1.5rem', marginBottom: '1.5rem' }}>
-            <h2 style={{ fontSize: '1rem', fontWeight: 700, color: '#1e3a5f', marginBottom: '1rem' }}>Fare Summary</h2>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', fontSize: '0.9rem' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', color: '#374151' }}>
-                <span>Base fare ({selectedClass.class_code}) × {passengers.length}</span>
-                <span>{formatINR(selectedClass.base_fare * passengers.length)}</span>
-              </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', color: '#374151' }}>
-                <span>Reservation fee × {passengers.length}</span>
-                <span>{formatINR(60 * passengers.length)}</span>
-              </div>
-              {train.train_type === 'SUPERFAST' && (
-                <div style={{ display: 'flex', justifyContent: 'space-between', color: '#374151' }}>
-                  <span>Superfast surcharge × {passengers.length}</span>
-                  <span>{formatINR(45 * passengers.length)}</span>
+          <div className="card" style={{ padding: '1.5rem', marginBottom: '1.25rem' }}>
+            <h2 style={{ fontSize: '1rem', fontWeight: 700, color: '#1e3a5f', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <IndianRupee size={18} /> Fare Summary
+            </h2>
+            <div style={{ fontSize: '0.9rem' }}>
+              {[
+                { label: `Base fare (${selectedClass.class_code}) × ${passengers.length}`, amount: selectedClass.base_fare * passengers.length },
+                { label: `Reservation fee × ${passengers.length}`, amount: reservationFee * passengers.length },
+                ...(superfastCharge > 0 ? [{ label: `Superfast surcharge × ${passengers.length}`, amount: superfastCharge * passengers.length }] : []),
+              ].map(row => (
+                <div key={row.label} style={{ display: 'flex', justifyContent: 'space-between', color: '#475569', marginBottom: '0.4rem' }}>
+                  <span>{row.label}</span><span>{formatINR(row.amount)}</span>
                 </div>
-              )}
-              <div style={{ borderTop: '2px solid #e2e8f0', paddingTop: '0.5rem', display: 'flex', justifyContent: 'space-between', fontWeight: 800, fontSize: '1.1rem', color: '#0f172a' }}>
-                <span>Total</span>
-                <span style={{ color: '#1e3a5f' }}>{formatINR(totalFare)}</span>
+              ))}
+              <div style={{ borderTop: '2px solid var(--border)', paddingTop: '0.6rem', marginTop: '0.35rem', display: 'flex', justifyContent: 'space-between', fontWeight: 900, fontSize: '1.15rem', color: '#1e3a5f' }}>
+                <span>Total Payable</span><span>{formatINR(totalFare)}</span>
+              </div>
+              <div style={{ fontSize: '0.72rem', color: '#94a3b8', marginTop: '0.3rem', textAlign: 'right' }}>
+                ⚠️ Demonstration fare — no real payment
               </div>
             </div>
           </div>
 
           {apiError && <div className="alert alert-danger" style={{ marginBottom: '1rem' }}><AlertTriangle size={16} /> {apiError}</div>}
-          {isWL && <div className="alert alert-warning" style={{ marginBottom: '1rem' }}><AlertTriangle size={16} /> <span><strong>Waiting List:</strong> Seats are unavailable. Proceeding will add you to the waiting list. Seats are allocated as cancellations occur (FIFO).</span></div>}
+          {isWL && (
+            <div className="alert alert-warning" style={{ marginBottom: '1rem' }}>
+              <AlertTriangle size={16} />
+              <span><strong>Waiting List Booking:</strong> No confirmed seats available. Proceeding adds you to the FIFO waitlist. Seats are allocated as cancellations occur.</span>
+            </div>
+          )}
 
           <div style={{ display: 'flex', gap: '0.75rem' }}>
             <button type="button" onClick={() => navigate(-1)} className="btn btn-outline">← Back</button>
             <button type="submit" className="btn btn-accent" disabled={loading} style={{ flex: 1 }}>
-              {loading ? <><span className="spinner" style={{ width: '1.1rem', height: '1.1rem', borderWidth: '2px' }} /> Processing…</> : <><CreditCard size={18} /> Proceed to Payment ({formatINR(totalFare)})</>}
+              {loading
+                ? <><span className="spinner" style={{ width: '1.1rem', height: '1.1rem', borderWidth: '2px' }} /> Creating booking…</>
+                : <><CreditCard size={18} /> Proceed to Payment ({formatINR(totalFare)})</>}
             </button>
           </div>
         </form>
@@ -613,7 +968,7 @@ function PassengerPage() {
 }
 
 // ============================================================
-// PAYMENT PAGE (Step 4) — Simulated payment modal
+// PAYMENT PAGE — Razorpay-ready simulation
 // ============================================================
 function PaymentPage() {
   const location = useLocation();
@@ -627,6 +982,7 @@ function PaymentPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [outcome, setOutcome] = useState<'SUCCESS' | 'FAILURE' | null>(null);
+  const [payMode, setPayMode] = useState<'UPI' | 'CARD' | 'NETBANK'>('UPI');
 
   useEffect(() => { if (!state) navigate('/'); }, [state, navigate]);
   if (!state) return null;
@@ -649,74 +1005,112 @@ function PaymentPage() {
     }
   };
 
+  const payModeIcons: Record<string, React.ReactNode> = {
+    UPI: <Wifi size={18} />,
+    CARD: <CreditCard size={18} />,
+    NETBANK: <Globe size={18} />,
+  };
+
   return (
-    <div style={{ flex: 1, background: '#f8fafc', padding: '2rem 1.25rem' }}>
-      <div className="container-main" style={{ maxWidth: '520px' }}>
+    <div style={{ flex: 1, background: 'var(--bg-page)', padding: '2rem 1.25rem' }}>
+      <div className="container-main" style={{ maxWidth: '560px' }}>
         <StepBar current={4} />
 
-        <div className="card" style={{ overflow: 'hidden' }}>
-          {/* Payment header */}
-          <div style={{ background: 'linear-gradient(135deg,#1e3a5f,#0c4a6e)', padding: '1.75rem', textAlign: 'center', color: '#fff' }}>
-            <div style={{ width: '3.5rem', height: '3.5rem', background: 'rgba(255,255,255,0.1)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 0.75rem' }}>
-              <CreditCard size={24} color="#fff" />
+        <div style={{ display: 'grid', gap: '1rem' }}>
+          {/* Payment mode selector (UI only — demo) */}
+          <div className="card" style={{ padding: '1.5rem' }}>
+            <h2 style={{ fontSize: '1rem', fontWeight: 700, color: '#1e3a5f', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <CreditCard size={18} /> Payment Method
+            </h2>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: '0.65rem' }}>
+              {(['UPI','CARD','NETBANK'] as const).map(m => (
+                <div key={m} className={`payment-option ${payMode === m ? 'selected' : ''}`} onClick={() => setPayMode(m)}>
+                  <div style={{ color: payMode === m ? '#f97316' : '#64748b' }}>{payModeIcons[m]}</div>
+                  <div>
+                    <div style={{ fontWeight: 700, fontSize: '0.85rem', color: '#0f172a' }}>{m}</div>
+                    <div style={{ fontSize: '0.7rem', color: '#94a3b8' }}>
+                      {m === 'UPI' ? 'GPay/PhonePe' : m === 'CARD' ? 'Debit/Credit' : 'Net Banking'}
+                    </div>
+                  </div>
+                </div>
+              ))}
             </div>
-            <div style={{ fontWeight: 700, fontSize: '1.2rem', marginBottom: '0.25rem' }}>Simulated Payment</div>
-            <div style={{ color: '#93c5fd', fontSize: '0.85rem' }}>Academic demonstration — no real payment</div>
+            <div className="alert alert-demo" style={{ marginTop: '1rem', fontSize: '0.8rem' }}>
+              <Info size={14} />
+              <span>Payment provider is in <strong>Demo Mode</strong>. No real payment will be processed. Razorpay sandbox can be enabled with credentials in <code>.env</code>.</span>
+            </div>
           </div>
 
-          <div style={{ padding: '1.75rem' }}>
-            {/* Booking summary */}
-            <div style={{ background: '#f8fafc', borderRadius: '0.75rem', padding: '1rem 1.25rem', marginBottom: '1.5rem' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem', color: '#374151', marginBottom: '0.4rem' }}>
-                <span>PNR</span><span style={{ fontWeight: 700 }}>{state.pnrNumber}</span>
+          {/* Booking summary card */}
+          <div className="payment-card">
+            <div style={{ fontSize: '0.7rem', color: 'rgba(255,255,255,.5)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '0.5rem' }}>
+              Booking Summary
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1.25rem' }}>
+              <div>
+                <div style={{ fontSize: '1.1rem', fontWeight: 700, color: '#fff' }}>{state.from} → {state.to}</div>
+                <div style={{ color: 'rgba(255,255,255,.6)', fontSize: '0.85rem' }}>
+                  {state.train.train_number} · {formatDate(state.date)}
+                </div>
+                <div style={{ color: 'rgba(255,255,255,.5)', fontSize: '0.8rem' }}>
+                  {state.selectedClass.class_code} · {state.selectedClass.class_name}
+                </div>
               </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem', color: '#374151', marginBottom: '0.4rem' }}>
-                <span>Route</span><span style={{ fontWeight: 600 }}>{state.from} → {state.to}</span>
-              </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem', color: '#374151', marginBottom: '0.4rem' }}>
-                <span>Class</span><span style={{ fontWeight: 600 }}>{state.selectedClass.class_code}</span>
-              </div>
-              <div style={{ borderTop: '1px solid #e2e8f0', paddingTop: '0.75rem', marginTop: '0.75rem', display: 'flex', justifyContent: 'space-between', fontWeight: 800, fontSize: '1.2rem' }}>
-                <span>Amount Due</span>
-                <span style={{ color: '#1e3a5f' }}>{formatINR(state.fareBreakdown.total_fare)}</span>
+              <div style={{ textAlign: 'right' }}>
+                <div style={{ fontFamily: 'monospace', color: '#f97316', fontWeight: 800, fontSize: '1rem' }}>{state.pnrNumber}</div>
+                {state.isWaitingList && <span className="badge badge-waiting" style={{ marginTop: '0.3rem' }}>Waitlist</span>}
               </div>
             </div>
-
-            {state.isWaitingList && (
-              <div className="alert alert-warning" style={{ marginBottom: '1.25rem', fontSize: '0.85rem' }}>
-                <AlertTriangle size={15} /> <span>This is a <strong>Waiting List</strong> booking. Full payment secures your WL position.</span>
+            <div style={{ borderTop: '1px solid rgba(255,255,255,.15)', paddingTop: '1rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div>
+                <div style={{ fontSize: '0.7rem', color: 'rgba(255,255,255,.5)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Amount Due</div>
+                <div style={{ fontSize: '1.85rem', fontWeight: 900, color: '#fff', fontVariantNumeric: 'tabular-nums' }}>
+                  {formatINR(state.fareBreakdown.total_fare)}
+                </div>
               </div>
-            )}
+              <div style={{ textAlign: 'right', fontSize: '0.78rem', color: 'rgba(255,255,255,.5)' }}>
+                <div>Mode: {payMode}</div>
+                <div>Demo simulation</div>
+              </div>
+            </div>
+          </div>
 
+          {/* Payment actions */}
+          <div className="card" style={{ padding: '1.5rem' }}>
             {outcome === 'FAILURE' ? (
               <div>
                 <div className="alert alert-danger" style={{ marginBottom: '1rem' }}>
-                  <XCircle size={16} /> Payment simulation failed. The booking is marked as failed.
+                  <XCircle size={16} /> Payment simulation failed. The booking is marked as failed and inventory has been released.
                 </div>
-                <button onClick={() => navigate('/')} className="btn btn-primary" style={{ width: '100%' }}>Start Over</button>
+                <div style={{ display: 'flex', gap: '0.65rem' }}>
+                  <button onClick={() => navigate('/')} className="btn btn-outline" style={{ flex: 1 }}>Go Home</button>
+                  <button onClick={() => navigate(-2)} className="btn btn-primary" style={{ flex: 1 }}>Try Again</button>
+                </div>
               </div>
             ) : (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-                <div style={{ fontSize: '0.82rem', color: '#64748b', textAlign: 'center', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.04em' }}>Choose payment simulation outcome</div>
-                <button onClick={() => handlePayment('SUCCESS')} className="btn btn-accent" disabled={loading} style={{ fontSize: '1rem', padding: '1rem' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
+                <div style={{ fontSize: '0.75rem', color: '#94a3b8', textAlign: 'center', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.25rem' }}>
+                  Simulate Payment Outcome
+                </div>
+                <button
+                  onClick={() => handlePayment('SUCCESS')}
+                  className="btn btn-success btn-lg btn-wide"
+                  disabled={loading}
+                  id="pay-success-btn"
+                >
                   {loading ? <span className="spinner" style={{ width: '1.1rem', height: '1.1rem', borderWidth: '2px' }} /> : <CheckCircle size={18} />}
-                  ✅ Simulate Successful Payment
+                  ✅ Pay {formatINR(state.fareBreakdown.total_fare)} — Simulate Success
                 </button>
-                <button onClick={() => handlePayment('FAILURE')} className="btn btn-danger" disabled={loading}>
+                <button onClick={() => handlePayment('FAILURE')} className="btn btn-danger btn-wide" disabled={loading} id="pay-fail-btn">
                   <XCircle size={16} /> Simulate Payment Failure
                 </button>
-                <button onClick={() => handlePayment('CANCEL')} className="btn btn-outline" disabled={loading}>
-                  Cancel & Go Back
+                <button onClick={() => handlePayment('CANCEL')} className="btn btn-outline btn-wide" disabled={loading} id="pay-cancel-btn">
+                  ← Cancel & Go Back
                 </button>
               </div>
             )}
 
             {error && <div className="alert alert-danger" style={{ marginTop: '1rem', fontSize: '0.85rem' }}><AlertTriangle size={14} /> {error}</div>}
-
-            <div className="alert alert-info" style={{ marginTop: '1.25rem', fontSize: '0.8rem' }}>
-              <Info size={14} />
-              <span>Academic demo: choose any outcome to test the booking state machine. No real payment is processed.</span>
-            </div>
           </div>
         </div>
       </div>
@@ -725,7 +1119,7 @@ function PaymentPage() {
 }
 
 // ============================================================
-// TICKET PAGE (Step 5)
+// TICKET PAGE
 // ============================================================
 function TicketPage() {
   const location = useLocation();
@@ -745,123 +1139,135 @@ function TicketPage() {
       .finally(() => setLoading(false));
   }, []);
 
-  if (loading) return <LoadingScreen message="Loading your ticket…" />;
+  if (loading) return <LoadingScreen message="Loading your e-ticket…" />;
   if (error) return <ErrorScreen message={error} onBack={() => navigate('/')} />;
   if (!ticket) return null;
 
   const statusInfo = getBookingStatusLabel(ticket.booking_status);
+  const isConfirmed = ticket.booking_status === 'CONFIRMED';
+  const isWL = ticket.booking_status === 'WAITING_LIST';
 
   return (
-    <div style={{ flex: 1, background: '#f8fafc', padding: '2rem 1.25rem' }}>
+    <div style={{ flex: 1, background: 'var(--bg-page)', padding: '2rem 1.25rem' }}>
       <div className="container-main">
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
-          <div style={{ fontSize: '1.1rem', fontWeight: 700, color: '#1e3a5f', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            <CheckCircle size={22} color="#16a34a" /> Booking {ticket.booking_status === 'CONFIRMED' ? 'Confirmed!' : ticket.booking_status === 'WAITING_LIST' ? 'Waiting List' : ticket.booking_status}
+        <StepBar current={5} />
+
+        {/* Action bar */}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', flexWrap: 'wrap', gap: '0.65rem' }}>
+          <div style={{ fontSize: '1.1rem', fontWeight: 800, color: '#1e3a5f', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            {isConfirmed ? <CheckCircle size={22} color="#16a34a" /> : isWL ? <Clock size={22} color="#7c3aed" /> : <XCircle size={22} color="#dc2626" />}
+            {isConfirmed ? 'Booking Confirmed!' : isWL ? 'On Waiting List' : `Booking ${ticket.booking_status}`}
           </div>
-          <div style={{ display: 'flex', gap: '0.5rem' }}>
-            <button onClick={() => window.print()} className="btn btn-outline no-print" style={{ fontSize: '0.85rem' }}>
-              <Printer size={15} /> Print
-            </button>
-            {['CONFIRMED', 'WAITING_LIST'].includes(ticket.booking_status) && (
-              <button onClick={() => setShowCancel(true)} className="btn btn-danger no-print" style={{ fontSize: '0.85rem' }}>
-                Cancel Ticket
-              </button>
+          <div style={{ display: 'flex', gap: '0.5rem' }} className="no-print">
+            <button onClick={() => window.print()} className="btn btn-outline btn-sm"><Printer size={14} /> Print</button>
+            {(isConfirmed || isWL) && (
+              <button onClick={() => setShowCancel(true)} className="btn btn-danger btn-sm">Cancel Ticket</button>
             )}
-            <button onClick={() => navigate('/')} className="btn btn-primary no-print" style={{ fontSize: '0.85rem' }}>
-              New Search
-            </button>
+            <button onClick={() => navigate('/')} className="btn btn-primary btn-sm">New Search</button>
           </div>
         </div>
 
         {/* Disclaimer */}
-        <div className="alert alert-warning" style={{ marginBottom: '1rem', fontSize: '0.82rem' }}>
-          <AlertTriangle size={15} /> {ticket.disclaimer}
+        <div className="alert alert-demo" style={{ marginBottom: '1rem', fontSize: '0.82rem' }}>
+          <AlertTriangle size={14} /> {ticket.disclaimer}
         </div>
 
         {/* E-Ticket */}
         <div className="ticket slide-up">
-          {/* Ticket header */}
-          <div style={{ padding: '2rem 2rem 1.5rem' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1.5rem' }}>
+          {/* Header */}
+          <div className="ticket-header">
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1.25rem' }}>
               <div>
-                <div style={{ fontSize: '0.72rem', color: '#93c5fd', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.25rem' }}>PNR Number</div>
-                <div style={{ fontSize: '1.75rem', fontWeight: 900, letterSpacing: '0.05em', color: '#f0f9ff' }}>{ticket.pnr_number}</div>
+                <div style={{ fontSize: '0.68rem', color: '#93c5fd', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '0.2rem' }}>PNR Number</div>
+                <div style={{ fontSize: '1.7rem', fontWeight: 900, letterSpacing: '0.04em', color: '#f0f9ff', fontFamily: 'monospace' }}>
+                  {ticket.pnr_number}
+                </div>
               </div>
               <div style={{ textAlign: 'right' }}>
-                <span className={`badge ${statusInfo.className}`} style={{ fontSize: '0.8rem', padding: '0.3rem 0.9rem' }}>{statusInfo.label}</span>
+                <span className={`badge ${statusInfo.className}`} style={{ fontSize: '0.8rem', padding: '0.3rem 0.85rem' }}>
+                  {statusInfo.label}
+                </span>
                 {ticket.transaction_id && (
-                  <div style={{ fontSize: '0.7rem', color: '#93c5fd', marginTop: '0.35rem' }}>TXN: {ticket.transaction_id}</div>
+                  <div style={{ fontSize: '0.68rem', color: '#93c5fd', marginTop: '0.3rem' }}>TXN: {ticket.transaction_id}</div>
                 )}
               </div>
             </div>
 
             {/* Journey */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem', marginBottom: '1.5rem' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem' }}>
               <div>
-                <div style={{ fontSize: '2rem', fontWeight: 900, color: '#f0f9ff' }}>
+                <div style={{ fontSize: '2rem', fontWeight: 900, color: '#f0f9ff', fontVariantNumeric: 'tabular-nums' }}>
                   {ticket.departure_time !== 'See train schedule' ? formatTime(ticket.departure_time) : '—:—'}
                 </div>
-                <div style={{ fontSize: '0.9rem', color: '#93c5fd', fontWeight: 600 }}>{ticket.train_number}</div>
-                <div style={{ fontSize: '0.78rem', color: '#7dd3fc' }}>{ticket.train_name}</div>
+                <div style={{ fontSize: '0.85rem', color: '#93c5fd', fontWeight: 700 }}>{ticket.source_station_code}</div>
+                <div style={{ fontSize: '0.75rem', color: '#7dd3fc' }}>{ticket.train_number} · {ticket.train_name}</div>
               </div>
               <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.25rem' }}>
-                <div style={{ width: '100%', height: '2px', background: 'linear-gradient(90deg,rgba(255,255,255,0.3),rgba(255,255,255,0.8),rgba(255,255,255,0.3))' }} />
-                <div style={{ fontSize: '0.75rem', color: '#93c5fd' }}>
-                  {ticket.class_code} · {ticket.class_name}
-                </div>
+                <div style={{ width: '100%', height: '2px', background: 'linear-gradient(90deg,rgba(255,255,255,.2),rgba(255,255,255,.7),rgba(255,255,255,.2))', borderRadius: '1px' }} />
+                <div style={{ fontSize: '0.72rem', color: '#93c5fd' }}>{ticket.class_code} · {ticket.class_name}</div>
               </div>
               <div style={{ textAlign: 'right' }}>
-                <div style={{ fontSize: '2rem', fontWeight: 900, color: '#f0f9ff' }}>
+                <div style={{ fontSize: '2rem', fontWeight: 900, color: '#f0f9ff', fontVariantNumeric: 'tabular-nums' }}>
                   {ticket.arrival_time !== 'See train schedule' ? formatTime(ticket.arrival_time) : '—:—'}
                 </div>
-                <div style={{ fontSize: '0.9rem', color: '#93c5fd', fontWeight: 600 }}>{formatDate(ticket.journey_date)}</div>
-                <div style={{ fontSize: '0.78rem', color: '#7dd3fc' }}>{ticket.journey_date !== ticket.arrival_date ? `Arrives ${formatDate(ticket.arrival_date)}` : ''}</div>
+                <div style={{ fontSize: '0.85rem', color: '#93c5fd', fontWeight: 700 }}>{ticket.dest_station_code}</div>
+                <div style={{ fontSize: '0.75rem', color: '#7dd3fc' }}>{formatDate(ticket.journey_date)}</div>
               </div>
             </div>
           </div>
 
-          {/* Perforated section — passengers */}
-          <div className="ticket-perforated" style={{ position: 'relative', zIndex: 1 }}>
-            <div style={{ fontSize: '0.72rem', color: '#93c5fd', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.75rem' }}>Passengers ({ticket.total_passengers})</div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+          {/* Ticket body */}
+          <div className="ticket-body">
+            <div style={{ fontSize: '0.72rem', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '0.75rem' }}>
+              Passengers ({ticket.total_passengers})
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', marginBottom: '1.5rem' }}>
               {ticket.passengers.map((p, i) => {
                 const ps = getPassengerStatusLabel(p.status);
                 return (
-                  <div key={i} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'rgba(255,255,255,0.06)', borderRadius: '0.5rem', padding: '0.6rem 0.875rem' }}>
+                  <div key={i} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: '#f8fafc', borderRadius: '8px', padding: '0.6rem 0.875rem', border: '1px solid var(--border)' }}>
                     <div>
-                      <span style={{ fontWeight: 600, color: '#f0f9ff' }}>{i + 1}. {p.passenger_name}</span>
-                      <span style={{ color: '#93c5fd', fontSize: '0.8rem', marginLeft: '0.5rem' }}>{p.age}y · {p.gender}</span>
+                      <span style={{ fontWeight: 700, color: '#0f172a' }}>{i + 1}. {p.passenger_name}</span>
+                      <span style={{ color: '#64748b', fontSize: '0.82rem', marginLeft: '0.5rem' }}>{p.age}y · {p.gender === 'M' ? 'Male' : p.gender === 'F' ? 'Female' : 'Other'}</span>
                     </div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                      {p.allocated_seat && <span style={{ fontSize: '0.8rem', color: '#7dd3fc', fontWeight: 600 }}>{p.allocated_seat}</span>}
-                      {p.wl_number && <span style={{ fontSize: '0.8rem', color: '#c4b5fd' }}>WL-{p.wl_number}</span>}
+                      {p.allocated_seat && <span style={{ fontSize: '0.82rem', fontWeight: 700, color: '#1e3a5f', fontFamily: 'monospace' }}>{p.allocated_seat}</span>}
+                      {p.wl_number && <span style={{ fontSize: '0.8rem', color: '#7c3aed', fontWeight: 600 }}>WL-{p.wl_number}</span>}
                       <span className={`badge ${ps.className}`}>{ps.label}</span>
                     </div>
                   </div>
                 );
               })}
             </div>
-          </div>
 
-          {/* Fare & Contact */}
-          <div style={{ padding: '1.25rem 2rem 2rem', position: 'relative', zIndex: 1 }}>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.25rem', paddingTop: '1rem', borderTop: '1px dashed var(--border)' }}>
               <div>
-                <div style={{ fontSize: '0.72rem', color: '#93c5fd', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.4rem' }}>Contact</div>
-                <div style={{ color: '#e0f2fe', fontSize: '0.85rem' }}>{ticket.contact_email}</div>
-                <div style={{ color: '#e0f2fe', fontSize: '0.85rem' }}>{ticket.contact_phone}</div>
+                <div className="ticket-label">Contact</div>
+                <div className="ticket-value" style={{ fontSize: '0.85rem' }}>{ticket.contact_email}</div>
+                <div style={{ color: '#475569', fontSize: '0.85rem' }}>{ticket.contact_phone}</div>
               </div>
               <div style={{ textAlign: 'right' }}>
-                <div style={{ fontSize: '0.72rem', color: '#93c5fd', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.4rem' }}>Total Fare</div>
-                <div style={{ fontSize: '1.75rem', fontWeight: 900, color: '#f0f9ff' }}>{formatINR(ticket.fare_breakdown.total_fare)}</div>
-                <div style={{ fontSize: '0.72rem', color: '#93c5fd' }}>Booked {new Date(ticket.booked_at).toLocaleDateString('en-IN')}</div>
+                <div className="ticket-label">Total Fare</div>
+                <div style={{ fontSize: '1.7rem', fontWeight: 900, color: '#1e3a5f', fontVariantNumeric: 'tabular-nums' }}>
+                  {formatINR(ticket.fare_breakdown.total_fare)}
+                </div>
+                <div style={{ fontSize: '0.72rem', color: '#94a3b8' }}>
+                  Booked {new Date(ticket.booked_at).toLocaleDateString('en-IN')}
+                </div>
               </div>
             </div>
           </div>
         </div>
 
         {/* Cancellation modal */}
-        {showCancel && <CancellationModal pnr={ticket.pnr_number} email={ticket.contact_email} onClose={() => setShowCancel(false)} onSuccess={() => { setShowCancel(false); navigate('/'); }} />}
+        {showCancel && (
+          <CancellationModal
+            pnr={ticket.pnr_number}
+            email={ticket.contact_email}
+            onClose={() => setShowCancel(false)}
+            onSuccess={() => { setShowCancel(false); navigate('/'); }}
+          />
+        )}
       </div>
     </div>
   );
@@ -896,15 +1302,17 @@ function CancellationModal({ pnr, email, onClose, onSuccess }: { pnr: string; em
   };
 
   return (
-    <div className="modal-overlay">
-      <div className="modal-box">
+    <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '1.25rem' }}>
+      <div className="card scale-in" style={{ width: '100%', maxWidth: '440px', overflow: 'hidden' }}>
         <div style={{ background: '#dc2626', padding: '1.25rem 1.5rem', color: '#fff' }}>
-          <div style={{ fontWeight: 700, fontSize: '1.05rem' }}>Cancel Ticket</div>
+          <div style={{ fontWeight: 800, fontSize: '1.05rem' }}>Cancel Ticket</div>
           <div style={{ fontSize: '0.82rem', color: '#fecaca' }}>PNR: {pnr}</div>
         </div>
         <div style={{ padding: '1.5rem' }}>
           {loading ? (
-            <div style={{ textAlign: 'center', padding: '2rem' }}><div className="spinner" style={{ margin: '0 auto' }} /></div>
+            <div style={{ textAlign: 'center', padding: '2rem' }}>
+              <div className="spinner" style={{ width: '2rem', height: '2rem', margin: '0 auto', color: '#94a3b8' }} />
+            </div>
           ) : error ? (
             <div className="alert alert-danger">{error}</div>
           ) : preview && !preview.is_eligible ? (
@@ -912,27 +1320,25 @@ function CancellationModal({ pnr, email, onClose, onSuccess }: { pnr: string; em
           ) : preview ? (
             <>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', marginBottom: '1.25rem', fontSize: '0.9rem' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', color: '#374151' }}>
-                  <span>Journey Date</span><span style={{ fontWeight: 600 }}>{formatDate(preview.journey_date)}</span>
-                </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', color: '#374151' }}>
-                  <span>Policy Applied</span><span style={{ fontWeight: 600, color: '#1e40af', fontSize: '0.82rem' }}>{preview.policy_applied}</span>
-                </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', color: '#374151' }}>
-                  <span>Original Fare</span><span style={{ fontWeight: 600 }}>{formatINR(preview.original_fare)}</span>
-                </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', color: '#dc2626' }}>
-                  <span>Cancellation Charge</span><span style={{ fontWeight: 600 }}>−{formatINR(preview.cancellation_charge)}</span>
-                </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', color: '#16a34a', fontWeight: 700, borderTop: '1px solid #e2e8f0', paddingTop: '0.5rem', marginTop: '0.25rem' }}>
-                  <span>Refund Amount ({preview.refund_percentage}%)</span>
-                  <span style={{ fontSize: '1.1rem' }}>{formatINR(preview.refund_amount)}</span>
+                {[
+                  { label: 'Journey Date', value: formatDate(preview.journey_date), color: '#374151' },
+                  { label: 'Policy Applied', value: preview.policy_applied, color: '#1e40af', small: true },
+                  { label: 'Original Fare', value: formatINR(preview.original_fare), color: '#374151' },
+                  { label: 'Cancellation Charge', value: `−${formatINR(preview.cancellation_charge)}`, color: '#dc2626' },
+                ].map(row => (
+                  <div key={row.label} style={{ display: 'flex', justifyContent: 'space-between', color: row.color }}>
+                    <span>{row.label}</span>
+                    <span style={{ fontWeight: 600, fontSize: row.small ? '0.82rem' : undefined }}>{row.value}</span>
+                  </div>
+                ))}
+                <div style={{ display: 'flex', justifyContent: 'space-between', color: '#16a34a', fontWeight: 800, borderTop: '1px solid var(--border)', paddingTop: '0.5rem', marginTop: '0.25rem', fontSize: '1.05rem' }}>
+                  <span>Refund ({preview.refund_percentage}%)</span>
+                  <span>{formatINR(preview.refund_amount)}</span>
                 </div>
               </div>
-
-              <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.85rem', cursor: 'pointer', marginBottom: '1.25rem' }}>
+              <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.85rem', cursor: 'pointer', marginBottom: '1.25rem', padding: '0.75rem', background: '#fff7ed', borderRadius: 'var(--r-sm)', border: '1px solid rgba(249,115,22,.2)' }}>
                 <input type="checkbox" checked={confirmed} onChange={e => setConfirmed(e.target.checked)} />
-                I confirm the cancellation and accept the refund policy
+                <span>I confirm cancellation and accept the refund amount of <strong>{formatINR(preview.refund_amount)}</strong></span>
               </label>
             </>
           ) : null}
@@ -955,8 +1361,8 @@ function CancellationModal({ pnr, email, onClose, onSuccess }: { pnr: string; em
 // ============================================================
 function LookupPage() {
   const navigate = useNavigate();
-  const [pnr, setPnr] = useState('');
-  const [email, setEmail] = useState('PNR-DEMO01');
+  const [pnr, setPnr] = useState('PNR-DEMO01');
+  const [email, setEmail] = useState('demo.passenger@example.com');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
@@ -976,10 +1382,10 @@ function LookupPage() {
   };
 
   return (
-    <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '3rem 1.25rem', background: '#f8fafc' }}>
+    <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '3rem 1.25rem', background: 'var(--bg-page)' }}>
       <div style={{ width: '100%', maxWidth: '420px' }}>
         <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
-          <div style={{ width: '4rem', height: '4rem', background: 'linear-gradient(135deg,#1e3a5f,#2563eb)', borderRadius: '1.2rem', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1rem' }}>
+          <div style={{ width: '4rem', height: '4rem', background: 'linear-gradient(135deg,#1e3a5f,#2d5a8e)', borderRadius: '1.2rem', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1rem' }}>
             <Search size={22} color="#fff" />
           </div>
           <h1 style={{ fontSize: '1.5rem', fontWeight: 800, color: '#1e3a5f', marginBottom: '0.4rem' }}>PNR Lookup</h1>
@@ -989,22 +1395,29 @@ function LookupPage() {
         <div className="card slide-up" style={{ padding: '1.75rem' }}>
           <form onSubmit={handleLookup}>
             <div style={{ marginBottom: '1rem' }}>
-              <label className="input-label">PNR Number</label>
-              <input className="input" placeholder="e.g. PNR-DEMO01" value={pnr} onChange={e => setPnr(e.target.value)} style={{ fontFamily: 'monospace', fontSize: '1rem', letterSpacing: '0.05em' }} />
+              <label className="input-label" htmlFor="pnr-input">PNR Number *</label>
+              <input
+                id="pnr-input"
+                className="input"
+                placeholder="e.g. PNR-DEMO01"
+                value={pnr}
+                onChange={e => setPnr(e.target.value)}
+                style={{ fontFamily: 'monospace', fontSize: '1rem', letterSpacing: '0.05em' }}
+              />
             </div>
             <div style={{ marginBottom: '1.25rem' }}>
-              <label className="input-label">Email (for verification)</label>
-              <input type="email" className="input" placeholder="you@example.com" value={email} onChange={e => setEmail(e.target.value)} />
+              <label className="input-label" htmlFor="email-input">Email (for verification)</label>
+              <input id="email-input" type="email" className="input" placeholder="you@example.com" value={email} onChange={e => setEmail(e.target.value)} />
             </div>
             {error && <div className="alert alert-danger" style={{ marginBottom: '1rem', fontSize: '0.85rem' }}><AlertTriangle size={14} /> {error}</div>}
-            <button type="submit" className="btn btn-primary" disabled={loading} style={{ width: '100%' }}>
+            <button type="submit" className="btn btn-primary btn-wide" disabled={loading}>
               {loading ? <><span className="spinner" style={{ width: '1rem', height: '1rem', borderWidth: '2px' }} /> Searching…</> : <><Search size={16} /> Find Ticket</>}
             </button>
           </form>
 
           <div className="alert alert-info" style={{ marginTop: '1.25rem', fontSize: '0.8rem' }}>
             <Info size={14} />
-            <span>Demo PNR: <strong>PNR-DEMO01</strong>, Email: <strong>demo.passenger@example.com</strong></span>
+            <span>Demo: PNR = <strong>PNR-DEMO01</strong>, Email = <strong>demo.passenger@example.com</strong></span>
           </div>
         </div>
       </div>
@@ -1013,7 +1426,94 @@ function LookupPage() {
 }
 
 // ============================================================
-// ADMIN LOGIN PAGE
+// BOOKING HISTORY PAGE
+// ============================================================
+function HistoryPage() {
+  const navigate = useNavigate();
+  const [email, setEmail] = useState('');
+  const [phone, setPhone] = useState('');
+  const [bookings, setBookings] = useState<ETicket[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [searched, setSearched] = useState(false);
+  const [error, setError] = useState('');
+
+  const handleSearch = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!email.trim()) { setError('Email is required'); return; }
+    setError('');
+    setLoading(true);
+    try {
+      const res = await apiClient.getBookingHistory(email.trim(), phone.trim() || undefined);
+      setBookings(res.bookings);
+      setSearched(true);
+    } catch (err) {
+      setError((err as Error).message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div style={{ flex: 1, background: 'var(--bg-page)', padding: '2rem 1.25rem' }}>
+      <div className="container-main">
+        <h1 style={{ fontSize: '1.4rem', fontWeight: 800, color: '#1e3a5f', marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+          <FileText size={22} /> My Booking History
+        </h1>
+
+        <div className="card" style={{ padding: '1.5rem', marginBottom: '1.5rem' }}>
+          <form onSubmit={handleSearch} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr auto', gap: '0.75rem', alignItems: 'end' }}>
+            <div>
+              <label className="input-label" htmlFor="h-email">Email Address *</label>
+              <input id="h-email" type="email" className="input" placeholder="your@email.com" value={email} onChange={e => setEmail(e.target.value)} required />
+            </div>
+            <div>
+              <label className="input-label" htmlFor="h-phone">Mobile (optional)</label>
+              <input id="h-phone" type="tel" className="input" placeholder="9876543210" value={phone} onChange={e => setPhone(e.target.value)} />
+            </div>
+            <button type="submit" className="btn btn-primary" disabled={loading}>
+              {loading ? <span className="spinner" style={{ width: '1rem', height: '1rem', borderWidth: '2px' }} /> : <><Search size={15} /> Find</>}
+            </button>
+          </form>
+          {error && <div className="alert alert-danger" style={{ marginTop: '1rem', fontSize: '0.85rem' }}><AlertTriangle size={14} /> {error}</div>}
+        </div>
+
+        {searched && (
+          bookings.length === 0 ? (
+            <div className="card" style={{ padding: '3rem', textAlign: 'center' }}>
+              <Ticket size={40} color="#cbd5e1" style={{ marginBottom: '1rem' }} />
+              <div style={{ fontWeight: 700, color: '#374151', marginBottom: '0.5rem' }}>No bookings found</div>
+              <div style={{ color: '#64748b', fontSize: '0.9rem' }}>No bookings are associated with this email address.</div>
+            </div>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+              {bookings.map((b: any) => {
+                const si = getBookingStatusLabel(b.booking_status);
+                return (
+                  <div key={b.pnr_number} className="card card-hover" style={{ padding: '1.1rem 1.35rem', display: 'flex', alignItems: 'center', gap: '1rem', flexWrap: 'wrap', cursor: 'pointer' }}
+                    onClick={() => navigate('/ticket', { state: { pnr: b.pnr_number, email: b.contact_email } })}>
+                    <div style={{ fontFamily: 'monospace', fontWeight: 800, color: '#1e3a5f', fontSize: '0.95rem', minWidth: '110px' }}>{b.pnr_number}</div>
+                    <div style={{ flex: 1 }}>
+                      <div style={{ fontWeight: 600, fontSize: '0.9rem', color: '#0f172a' }}>{formatDate(b.journey_date)}</div>
+                      <div style={{ fontSize: '0.82rem', color: '#64748b' }}>{b.class_code} · {b.total_passengers} passenger{b.total_passengers > 1 ? 's' : ''}</div>
+                    </div>
+                    <div style={{ textAlign: 'right' }}>
+                      <div style={{ fontWeight: 800, color: '#1e3a5f', fontSize: '1.05rem' }}>{formatINR(b.total_fare)}</div>
+                      <span className={`badge ${si.className}`}>{si.label}</span>
+                    </div>
+                    <ChevronRight size={18} color="#94a3b8" />
+                  </div>
+                );
+              })}
+            </div>
+          )
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ============================================================
+// ADMIN LOGIN
 // ============================================================
 function AdminLoginPage() {
   const navigate = useNavigate();
@@ -1022,7 +1522,6 @@ function AdminLoginPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
-  // Check if already logged in
   useEffect(() => {
     if (localStorage.getItem('adminToken')) navigate('/admin');
   }, []);
@@ -1044,10 +1543,10 @@ function AdminLoginPage() {
   };
 
   return (
-    <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '3rem 1.25rem', background: '#f8fafc' }}>
+    <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '3rem 1.25rem', background: 'var(--bg-page)' }}>
       <div style={{ width: '100%', maxWidth: '380px' }}>
         <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
-          <div style={{ width: '4rem', height: '4rem', background: 'linear-gradient(135deg,#1e3a5f,#2563eb)', borderRadius: '1.2rem', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1rem' }}>
+          <div style={{ width: '4rem', height: '4rem', background: 'linear-gradient(135deg,#1e3a5f,#2d5a8e)', borderRadius: '1.2rem', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1rem' }}>
             <Shield size={22} color="#fff" />
           </div>
           <h1 style={{ fontSize: '1.5rem', fontWeight: 800, color: '#1e3a5f' }}>Admin Portal</h1>
@@ -1057,15 +1556,15 @@ function AdminLoginPage() {
         <div className="card slide-up" style={{ padding: '1.75rem' }}>
           <form onSubmit={handleLogin}>
             <div style={{ marginBottom: '1rem' }}>
-              <label className="input-label">Username</label>
-              <input className="input" value={username} onChange={e => setUsername(e.target.value)} required />
+              <label className="input-label" htmlFor="admin-user">Username</label>
+              <input id="admin-user" className="input" value={username} onChange={e => setUsername(e.target.value)} required />
             </div>
             <div style={{ marginBottom: '1.25rem' }}>
-              <label className="input-label">Password</label>
-              <input type="password" className="input" placeholder="PresidencyAdmin2026!" value={password} onChange={e => setPassword(e.target.value)} required />
+              <label className="input-label" htmlFor="admin-pass">Password</label>
+              <input id="admin-pass" type="password" className="input" placeholder="PresidencyAdmin2026!" value={password} onChange={e => setPassword(e.target.value)} required />
             </div>
             {error && <div className="alert alert-danger" style={{ marginBottom: '1rem', fontSize: '0.85rem' }}><AlertTriangle size={14} /> {error}</div>}
-            <button type="submit" className="btn btn-primary" disabled={loading} style={{ width: '100%' }}>
+            <button type="submit" className="btn btn-primary btn-wide" disabled={loading} id="admin-login-btn">
               {loading ? <span className="spinner" style={{ width: '1rem', height: '1rem', borderWidth: '2px' }} /> : <><Shield size={16} /> Sign In</>}
             </button>
           </form>
@@ -1080,14 +1579,15 @@ function AdminLoginPage() {
 }
 
 // ============================================================
-// ADMIN DASHBOARD PAGE
+// ADMIN DASHBOARD
 // ============================================================
 function AdminDashboard() {
   const navigate = useNavigate();
   const [stats, setStats] = useState<{ totalBookings: number; confirmedBookings: number; waitingList: number; cancelled: number; totalRevenue: number } | null>(null);
-  const [bookings, setBookings] = useState<ETicket[]>([]);
+  const [bookings, setBookings] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [tab, setTab] = useState<'bookings' | 'trains'>('bookings');
 
   const token = localStorage.getItem('adminToken') || '';
 
@@ -1098,7 +1598,7 @@ function AdminDashboard() {
       apiClient.getAdminBookings(token),
     ]).then(([dash, bk]) => {
       setStats(dash.stats);
-      setBookings(bk.bookings as ETicket[]);
+      setBookings(bk.bookings as any[]);
     }).catch(e => {
       if (e.message.includes('Invalid') || e.message.includes('Unauthorized')) {
         localStorage.removeItem('adminToken');
@@ -1112,99 +1612,148 @@ function AdminDashboard() {
   if (error) return <ErrorScreen message={error} onBack={() => navigate('/')} />;
 
   const statCards = [
-    { label: 'Total Bookings', value: stats?.totalBookings || 0, icon: <Ticket size={20} />, color: '#2563eb' },
-    { label: 'Confirmed', value: stats?.confirmedBookings || 0, icon: <CheckCircle size={20} />, color: '#16a34a' },
-    { label: 'Waiting List', value: stats?.waitingList || 0, icon: <Clock size={20} />, color: '#7c3aed' },
-    { label: 'Revenue', value: formatINR(stats?.totalRevenue || 0), icon: <CreditCard size={20} />, color: '#ea580c' },
+    { label: 'Total Bookings', value: stats?.totalBookings || 0, icon: <Ticket size={22} />, color: '#2563eb', bg: 'rgba(37,99,235,.1)' },
+    { label: 'Confirmed', value: stats?.confirmedBookings || 0, icon: <CheckCircle size={22} />, color: '#16a34a', bg: 'rgba(22,163,74,.1)' },
+    { label: 'Waiting List', value: stats?.waitingList || 0, icon: <Clock size={22} />, color: '#7c3aed', bg: 'rgba(124,58,237,.1)' },
+    { label: 'Cancelled', value: stats?.cancelled || 0, icon: <XCircle size={22} />, color: '#dc2626', bg: 'rgba(220,38,38,.1)' },
+    { label: 'Total Revenue', value: formatINR(stats?.totalRevenue || 0), icon: <IndianRupee size={22} />, color: '#f97316', bg: 'rgba(249,115,22,.1)' },
   ];
 
   return (
-    <div style={{ flex: 1, background: '#f8fafc', padding: '2rem 1.25rem' }}>
+    <div style={{ flex: 1, background: 'var(--bg-page)', padding: '2rem 1.25rem' }}>
       <div className="container-wide">
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.75rem' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.75rem', flexWrap: 'wrap', gap: '0.75rem' }}>
           <div>
             <h1 style={{ fontSize: '1.4rem', fontWeight: 800, color: '#1e3a5f', margin: 0 }}>Admin Dashboard</h1>
-            <p style={{ color: '#64748b', fontSize: '0.85rem', margin: '0.2rem 0 0' }}>Team 11 — CSE 2271 Demonstration System</p>
+            <p style={{ color: '#64748b', fontSize: '0.85rem', margin: '0.2rem 0 0' }}>RailReserve v2.0 — Team 11 · CSE 2271 Demonstration System</p>
           </div>
-          <div className="badge badge-pending" style={{ fontSize: '0.78rem' }}>⚠️ Academic Demo</div>
+          <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+            <span className="badge badge-demo">⚠️ Demo Mode</span>
+          </div>
         </div>
 
-        {/* Stats */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(180px,1fr))', gap: '1rem', marginBottom: '2rem' }}>
+        {/* Stats grid */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(170px,1fr))', gap: '1rem', marginBottom: '2rem' }}>
           {statCards.map(s => (
-            <div key={s.label} className="card" style={{ padding: '1.25rem' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.75rem' }}>
-                <div style={{ color: s.color, background: `${s.color}15`, borderRadius: '0.5rem', padding: '0.4rem' }}>{s.icon}</div>
+            <div key={s.label} className="stat-card">
+              <div className="stat-icon" style={{ background: s.bg }}>
+                <span style={{ color: s.color }}>{s.icon}</span>
               </div>
-              <div style={{ fontSize: '1.6rem', fontWeight: 800, color: '#0f172a', marginBottom: '0.2rem' }}>{s.value}</div>
-              <div style={{ fontSize: '0.82rem', color: '#64748b' }}>{s.label}</div>
+              <div>
+                <div className="stat-value" style={{ color: s.color }}>{s.value}</div>
+                <div className="stat-label">{s.label}</div>
+              </div>
             </div>
           ))}
         </div>
 
-        {/* Bookings table */}
-        <div className="card" style={{ overflow: 'hidden' }}>
-          <div style={{ padding: '1.25rem 1.5rem', borderBottom: '1px solid #f1f5f9', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <h2 style={{ fontSize: '1rem', fontWeight: 700, color: '#1e3a5f', margin: 0 }}>Recent Bookings</h2>
-            <span style={{ fontSize: '0.82rem', color: '#64748b' }}>{bookings.length} records</span>
-          </div>
-          <div style={{ overflowX: 'auto' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem' }}>
-              <thead>
-                <tr style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0' }}>
-                  {['PNR', 'Date', 'Class', 'Pax', 'Fare', 'Status', 'Payment'].map(h => (
-                    <th key={h} style={{ padding: '0.75rem 1rem', textAlign: 'left', fontWeight: 600, color: '#64748b', textTransform: 'uppercase', fontSize: '0.72rem', letterSpacing: '0.04em' }}>{h}</th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {bookings.length === 0 ? (
-                  <tr><td colSpan={7} style={{ textAlign: 'center', padding: '2rem', color: '#94a3b8' }}>No bookings yet</td></tr>
-                ) : bookings.map((b: any, i: number) => {
-                  const si = getBookingStatusLabel(b.booking_status);
-                  return (
-                    <tr key={i} style={{ borderBottom: '1px solid #f1f5f9' }}>
-                      <td style={{ padding: '0.75rem 1rem', fontFamily: 'monospace', fontWeight: 700, color: '#1e3a5f' }}>{b.pnr_number}</td>
-                      <td style={{ padding: '0.75rem 1rem', color: '#374151' }}>{b.journey_date}</td>
-                      <td style={{ padding: '0.75rem 1rem' }}><span className="badge badge-confirmed">{b.class_code}</span></td>
-                      <td style={{ padding: '0.75rem 1rem', color: '#374151' }}>{b.total_passengers}</td>
-                      <td style={{ padding: '0.75rem 1rem', fontWeight: 600 }}>{formatINR(b.total_fare)}</td>
-                      <td style={{ padding: '0.75rem 1rem' }}><span className={`badge ${si.className}`}>{si.label}</span></td>
-                      <td style={{ padding: '0.75rem 1rem' }}><span className={`badge ${b.payment_status === 'PAID' ? 'badge-available' : 'badge-pending'}`}>{b.payment_status}</span></td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
+        {/* Tabs */}
+        <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1rem' }}>
+          {(['bookings','trains'] as const).map(t => (
+            <button key={t} onClick={() => setTab(t)} className={`btn ${tab === t ? 'btn-primary' : 'btn-outline'} btn-sm`}>
+              {t === 'bookings' ? <><Ticket size={13} /> Bookings</> : <><Train size={13} /> Trains</>}
+            </button>
+          ))}
         </div>
+
+        {/* Bookings table */}
+        {tab === 'bookings' && (
+          <div className="card" style={{ overflow: 'hidden' }}>
+            <div style={{ padding: '1rem 1.25rem', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <h2 style={{ fontSize: '0.95rem', fontWeight: 700, color: '#1e3a5f', margin: 0 }}>Recent Bookings</h2>
+              <span style={{ fontSize: '0.78rem', color: '#64748b' }}>{bookings.length} records shown</span>
+            </div>
+            <div style={{ overflowX: 'auto' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem' }}>
+                <thead>
+                  <tr style={{ background: '#f8fafc', borderBottom: '1px solid var(--border)' }}>
+                    {['PNR', 'Date', 'Route', 'Class', 'Pax', 'Fare', 'Status', 'Payment'].map(h => (
+                      <th key={h} style={{ padding: '0.7rem 1rem', textAlign: 'left', fontWeight: 600, color: '#64748b', textTransform: 'uppercase', fontSize: '0.7rem', letterSpacing: '0.05em', whiteSpace: 'nowrap' }}>{h}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {bookings.length === 0 ? (
+                    <tr><td colSpan={8} style={{ textAlign: 'center', padding: '2rem', color: '#94a3b8' }}>No bookings yet</td></tr>
+                  ) : bookings.map((b: any, i: number) => {
+                    const si = getBookingStatusLabel(b.booking_status);
+                    return (
+                      <tr key={i} style={{ borderBottom: '1px solid #f8fafc' }}
+                        onClick={() => navigate('/ticket', { state: { pnr: b.pnr_number, email: b.contact_email } })}
+                        className="card-hover" style={{ cursor: 'pointer', borderBottom: '1px solid #f8fafc' }}>
+                        <td style={{ padding: '0.7rem 1rem', fontFamily: 'monospace', fontWeight: 700, color: '#1e3a5f', fontSize: '0.82rem' }}>{b.pnr_number}</td>
+                        <td style={{ padding: '0.7rem 1rem', color: '#374151', whiteSpace: 'nowrap' }}>{b.journey_date}</td>
+                        <td style={{ padding: '0.7rem 1rem', color: '#374151', whiteSpace: 'nowrap', fontSize: '0.8rem' }}>—</td>
+                        <td style={{ padding: '0.7rem 1rem' }}><span className="badge badge-confirmed">{b.class_code}</span></td>
+                        <td style={{ padding: '0.7rem 1rem', color: '#374151' }}>{b.total_passengers}</td>
+                        <td style={{ padding: '0.7rem 1rem', fontWeight: 700, whiteSpace: 'nowrap' }}>{formatINR(b.total_fare)}</td>
+                        <td style={{ padding: '0.7rem 1rem' }}><span className={`badge ${si.className}`}>{si.label}</span></td>
+                        <td style={{ padding: '0.7rem 1rem' }}><span className={`badge ${b.payment_status === 'PAID' ? 'badge-confirmed' : 'badge-pending'}`}>{b.payment_status}</span></td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
+
+        {tab === 'trains' && (
+          <div className="card" style={{ padding: '1.5rem' }}>
+            <h2 style={{ fontSize: '0.95rem', fontWeight: 700, color: '#1e3a5f', marginBottom: '1rem' }}>Demo Train Network</h2>
+            <div className="alert alert-info" style={{ marginBottom: '1rem', fontSize: '0.85rem' }}>
+              <Info size={14} /> 22 demonstration trains · 55 stations · 770+ schedules seeded for 35 days. All data is fictional for academic use only.
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(280px,1fr))', gap: '0.65rem' }}>
+              {[
+                { num: 'D0001', name: 'Demo Rajdhani Superfast Express', type: 'SUPERFAST', route: 'SBC → NDLS (13 stops)' },
+                { num: 'D0002', name: 'Demo Shatabdi Chair Car Express', type: 'SUPERFAST', route: 'SBC → MAS (4 stops)' },
+                { num: 'D0007', name: 'Demo Garib Rath Express',          type: 'EXPRESS',   route: 'MAS → TVC (11 stops)' },
+                { num: 'D0011', name: 'Demo Mangala Express',             type: 'EXPRESS',   route: 'TVC → NDLS (14 stops)' },
+                { num: 'D0017', name: 'Demo Coromandel Express',          type: 'SUPERFAST', route: 'MAS → HWH (5 stops)' },
+                { num: 'D0016', name: 'Demo Kerala Express',              type: 'SUPERFAST', route: 'NDLS → TVC (9 stops)' },
+              ].map(t => (
+                <div key={t.num} className="card" style={{ padding: '0.85rem 1rem' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.25rem' }}>
+                    <span style={{ fontWeight: 800, fontSize: '0.88rem', color: '#1e3a5f' }}>{t.num}</span>
+                    <span className={t.type === 'SUPERFAST' ? 'badge badge-superfast' : 'badge badge-express'}>{t.type}</span>
+                  </div>
+                  <div style={{ fontSize: '0.82rem', fontWeight: 600, color: '#374151', marginBottom: '0.15rem' }}>{t.name}</div>
+                  <div style={{ fontSize: '0.75rem', color: '#94a3b8' }}>{t.route}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
 }
 
 // ============================================================
-// SHARED COMPONENTS
+// STEP BAR
 // ============================================================
 function StepBar({ current }: { current: number }) {
   const steps = [
-    { n: 1, label: 'Search', icon: <Search size={14} /> },
-    { n: 2, label: 'Select', icon: <Train size={14} /> },
-    { n: 3, label: 'Passengers', icon: <Users size={14} /> },
-    { n: 4, label: 'Payment', icon: <CreditCard size={14} /> },
-    { n: 5, label: 'Ticket', icon: <Ticket size={14} /> },
+    { n: 1, label: 'Search', icon: <Search size={13} /> },
+    { n: 2, label: 'Select', icon: <Train size={13} /> },
+    { n: 3, label: 'Details', icon: <Users size={13} /> },
+    { n: 4, label: 'Payment', icon: <CreditCard size={13} /> },
+    { n: 5, label: 'Ticket', icon: <Ticket size={13} /> },
   ];
   return (
-    <div className="step-bar no-print" style={{ marginBottom: '1.75rem' }}>
+    <div className="stepper no-print" style={{ marginBottom: '1.75rem' }}>
       {steps.map((s, i) => (
         <React.Fragment key={s.n}>
-          <div className="step-item">
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px' }}>
             <div className={`step-circle ${current === s.n ? 'active' : current > s.n ? 'done' : 'inactive'}`}>
-              {current > s.n ? <CheckCircle size={14} /> : s.icon}
+              {current > s.n ? <CheckCircle size={13} /> : s.icon}
             </div>
-            <span style={{ fontSize: '0.7rem', fontWeight: 600, color: current >= s.n ? '#1e3a5f' : '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.04em' }}>{s.label}</span>
+            <span className={`step-label ${current === s.n ? 'active' : current > s.n ? 'done' : ''}`}>{s.label}</span>
           </div>
-          {i < steps.length - 1 && <div className={`step-line ${current > s.n + 1 || (current > s.n) ? 'done' : ''}`} style={{ marginBottom: '1.3rem' }} />}
+          {i < steps.length - 1 && (
+            <div className={`step-connector ${current > s.n + 1 ? 'done' : current > s.n ? 'active' : ''}`} style={{ marginBottom: '18px' }} />
+          )}
         </React.Fragment>
       ))}
     </div>
@@ -1214,8 +1763,8 @@ function StepBar({ current }: { current: number }) {
 function LoadingScreen({ message }: { message: string }) {
   return (
     <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: '1rem', padding: '4rem' }}>
-      <div className="spinner" style={{ width: '3rem', height: '3rem', borderWidth: '3px' }} />
-      <div style={{ color: '#64748b', fontWeight: 500 }}>{message}</div>
+      <div className="spinner" style={{ width: '2.5rem', height: '2.5rem', borderWidth: '3px', color: '#1e3a5f' }} />
+      <div style={{ color: '#64748b', fontWeight: 500, fontSize: '0.95rem' }}>{message}</div>
     </div>
   );
 }
@@ -1240,9 +1789,17 @@ export default function App() {
   return (
     <BrowserRouter>
       <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
-        {/* Disclaimer banner */}
-        <div className="disclaimer">
-          ⚠️ ACADEMIC DEMONSTRATION SYSTEM — TEAM 11 — CSE 2271 — PRESIDENCY UNIVERSITY, BENGALURU — NO REAL TICKETS, PAYMENTS, OR JOURNEYS
+        {/* Demo disclaimer banner */}
+        <div style={{
+          background: 'linear-gradient(135deg,#7c2d12,#9a3412)',
+          color: '#fed7aa',
+          fontSize: '0.72rem',
+          fontWeight: 600,
+          letterSpacing: '0.04em',
+          padding: '0.35rem 1.25rem',
+          textAlign: 'center',
+        }}>
+          ⚠️ ACADEMIC DEMONSTRATION SYSTEM — TEAM 11 — CSE 2271 — PRESIDENCY UNIVERSITY, BENGALURU — ALL DATA IS FICTIONAL
         </div>
         <Navbar />
         <Routes>
@@ -1252,6 +1809,7 @@ export default function App() {
           <Route path="/payment" element={<PaymentPage />} />
           <Route path="/ticket" element={<TicketPage />} />
           <Route path="/lookup" element={<LookupPage />} />
+          <Route path="/history" element={<HistoryPage />} />
           <Route path="/admin/login" element={<AdminLoginPage />} />
           <Route path="/admin" element={<AdminDashboard />} />
           <Route path="*" element={
@@ -1262,6 +1820,13 @@ export default function App() {
             </div>
           } />
         </Routes>
+        {/* Footer */}
+        <footer style={{ background: '#0a0f1e', color: '#64748b', padding: '1.5rem 1.25rem', fontSize: '0.78rem', textAlign: 'center', borderTop: '1px solid rgba(255,255,255,.05)' }}>
+          <div style={{ marginBottom: '0.35rem' }}>
+            <span style={{ color: '#f97316', fontWeight: 700 }}>RailReserve</span> — Team 11 · Software Design and Development · CSE 2271 · Presidency University, Bengaluru
+          </div>
+          <div>⚠️ Academic demonstration only. All train schedules, seat availability, and booking data are fictional.</div>
+        </footer>
       </div>
     </BrowserRouter>
   );

@@ -1,4 +1,4 @@
-// Typed API client functions — all HTTP calls go through here
+// Typed API client v2.0 — all HTTP calls go through here
 import type {
   Station, TrainResult, BookingCreatedResponse,
   ETicket, CancellationPreview, PassengerInput, ClassCode
@@ -20,14 +20,28 @@ async function api<T>(path: string, options?: RequestInit): Promise<T> {
 }
 
 export const apiClient = {
-  // Stations
+  // Stations — full list
   getStations: () => api<{ success: true; stations: Station[] }>('/stations'),
 
-  // Train search
-  searchTrains: (from: string, to: string, date: string) =>
-    api<{ success: true; count: number; trains: TrainResult[] }>(
-      `/trains/search?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}&date=${date}`
-    ),
+  // Station autocomplete — partial search
+  autocompleteStations: (q: string) =>
+    api<{ success: true; stations: Station[] }>(`/stations/autocomplete?q=${encodeURIComponent(q)}`),
+
+  // Train search with optional filters
+  searchTrains: (from: string, to: string, date: string, sort?: string, filterClass?: string, filterAvail?: string) => {
+    const params = new URLSearchParams({ from, to, date });
+    if (sort)        params.set('sort', sort);
+    if (filterClass) params.set('filter_class', filterClass);
+    if (filterAvail) params.set('filter_avail', filterAvail);
+    return api<{ success: true; count: number; trains: TrainResult[] }>(`/trains/search?${params}`);
+  },
+
+  // Train intermediate stops
+  getTrainStops: (trainId: number) =>
+    api<{ success: true; stops: Array<{
+      stop_sequence: number; station_code: string; station_name: string; city: string;
+      arrival_time: string | null; departure_time: string | null; day_offset: number; distance_km: number;
+    }> }>(`/trains/${trainId}/stops`),
 
   // Bookings
   createBooking: (body: {
@@ -77,13 +91,30 @@ export const apiClient = {
     }),
 
   getAdminDashboard: (token: string) =>
-    api<{ success: true; stats: { totalBookings: number; confirmedBookings: number; waitingList: number; cancelled: number; totalRevenue: number }; trains: number; recent_audit_logs: unknown[] }>(
-      '/admin/dashboard',
-      { headers: { Authorization: `Bearer ${token}` } }
-    ),
+    api<{
+      success: true;
+      stats: { totalBookings: number; confirmedBookings: number; waitingList: number; cancelled: number; totalRevenue: number };
+      trains: number;
+      recent_audit_logs: unknown[];
+    }>('/admin/dashboard', { headers: { Authorization: `Bearer ${token}` } }),
 
-  getAdminBookings: (token: string) =>
-    api<{ success: true; bookings: ETicket[] }>('/admin/bookings', {
+  getAdminBookings: (token: string, status?: string, limit = 50, offset = 0) => {
+    const params = new URLSearchParams({ limit: String(limit), offset: String(offset) });
+    if (status) params.set('status', status);
+    return api<{ success: true; bookings: ETicket[]; count: number }>(`/admin/bookings?${params}`, {
       headers: { Authorization: `Bearer ${token}` }
+    });
+  },
+
+  getAdminAuditLogs: (token: string, limit = 50) =>
+    api<{ success: true; total: number; logs: unknown[] }>(`/admin/audit-logs?limit=${limit}`, {
+      headers: { Authorization: `Bearer ${token}` }
+    }),
+
+  updateInventory: (token: string, scheduleId: number, classCode: string, seats: number) =>
+    api('/admin/inventory/' + scheduleId + '/' + classCode, {
+      method: 'PATCH',
+      headers: { Authorization: `Bearer ${token}` },
+      body: JSON.stringify({ available_seats: seats })
     }),
 };

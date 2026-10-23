@@ -192,21 +192,29 @@ export class BookingController {
         ? calculateFare(classInfo.base_fare, booking.total_passengers, schedule!.train_type)
         : null;
 
-      // Get route info for departure/arrival times
-      const sourceRoute = schedule
-        ? trainRepo.getTrainRoute(schedule.train_id, '')
-        : null;
+      // Look up station codes for ticket display
+      const sourceStation = trainRepo.findStationById(booking.source_station_id);
+      const destStation   = trainRepo.findStationById(booking.dest_station_id);
+      const sourceCode = sourceStation?.code || booking.source_station_id.toString();
+      const destCode   = destStation?.code   || booking.dest_station_id.toString();
+
+      // Get departure/arrival times from train routes
+      const depRoute = schedule ? trainRepo.getTrainRouteByStationId(schedule.train_id, booking.source_station_id) : null;
+      const arrRoute = schedule ? trainRepo.getTrainRouteByStationId(schedule.train_id, booking.dest_station_id)   : null;
 
       const eticket: ETicket = {
         pnr_number: booking.pnr_number,
         train_number: schedule?.train_number || 'N/A',
         train_name: schedule?.train_name || 'N/A',
-        source_station: booking.source_station_id.toString(),
-        dest_station: booking.dest_station_id.toString(),
+        source_station: sourceStation ? `${sourceCode} — ${sourceStation.city}` : sourceCode,
+        dest_station:   destStation   ? `${destCode} — ${destStation.city}`     : destCode,
+        source_station_code: sourceCode,
+        dest_station_code:   destCode,
         journey_date: booking.journey_date,
-        departure_time: 'See train schedule',
-        arrival_time: 'See train schedule',
+        departure_time: depRoute?.departure_time || 'See schedule',
+        arrival_time:   arrRoute?.arrival_time   || 'See schedule',
         arrival_date: booking.journey_date,
+
         class_code: booking.class_code,
         class_name: CLASS_NAMES[booking.class_code] || booking.class_code,
         total_passengers: booking.total_passengers,

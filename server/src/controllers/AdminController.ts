@@ -161,10 +161,32 @@ export class AdminController {
     try {
       const limit = Math.min(Number(req.query.limit) || 50, 100);
       const offset = Number(req.query.offset) || 0;
-      const bookings = bookingRepo.findAllBookings(limit, offset);
-      res.json({ success: true, count: bookings.length, bookings });
+      const status = req.query.status as string | undefined;
+      const bookings = bookingRepo.findAllBookings(limit, offset, status);
+      res.json({ success: true, count: bookings.length, offset, limit, bookings });
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  // GET /api/admin/audit-logs
+  getAuditLogs(req: Request, res: Response, next: NextFunction): void {
+    try {
+      const limit = Math.min(Number(req.query.limit) || 50, 100);
+      const offset = Number(req.query.offset) || 0;
+      const db = getDatabase();
+      const logs = db.prepare(`
+        SELECT al.*, b.pnr_number
+        FROM audit_logs al
+        LEFT JOIN bookings b ON b.id = al.booking_id
+        ORDER BY al.timestamp DESC
+        LIMIT ? OFFSET ?
+      `).all(limit, offset);
+      const total = (db.prepare('SELECT COUNT(*) as c FROM audit_logs').get() as { c: number }).c;
+      res.json({ success: true, total, offset, limit, logs });
     } catch (err) {
       next(err);
     }
   }
 }
+

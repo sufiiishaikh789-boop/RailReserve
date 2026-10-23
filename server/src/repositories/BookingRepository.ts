@@ -553,10 +553,14 @@ export class BookingRepository {
     `).all(email) as Booking[];
   }
 
-  // Admin: get all bookings (paginated)
-  findAllBookings(limit = 50, offset = 0): Booking[] {
-    return getDatabase()
-      .prepare('SELECT * FROM bookings ORDER BY created_at DESC LIMIT ? OFFSET ?')
+  // Admin: get all bookings (paginated, optional status filter)
+  findAllBookings(limit = 50, offset = 0, status?: string): Booking[] {
+    const db = getDatabase();
+    if (status) {
+      return db.prepare('SELECT * FROM bookings WHERE booking_status = ? ORDER BY created_at DESC LIMIT ? OFFSET ?')
+        .all(status, limit, offset) as Booking[];
+    }
+    return db.prepare('SELECT * FROM bookings ORDER BY created_at DESC LIMIT ? OFFSET ?')
       .all(limit, offset) as Booking[];
   }
 

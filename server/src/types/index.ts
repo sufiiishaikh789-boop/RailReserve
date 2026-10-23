@@ -7,13 +7,16 @@ export interface Station {
   name: string;
   city: string;
   state: string;
+  region: string;
+  aliases: string;
+  active: number;
 }
 
 export interface Train {
   id: number;
   train_number: string;
   name: string;
-  type: 'SUPERFAST' | 'EXPRESS' | 'PASSENGER';
+  type: 'SUPERFAST' | 'EXPRESS' | 'PASSENGER' | 'MAIL';
   active: number;
 }
 
@@ -276,6 +279,8 @@ export interface ETicket {
   train_name: string;
   source_station: string;
   dest_station: string;
+  source_station_code: string;
+  dest_station_code: string;
   journey_date: string;
   departure_time: string;
   arrival_time: string;
@@ -293,6 +298,7 @@ export interface ETicket {
   booked_at: string;
   disclaimer: string;
 }
+
 
 export interface ETicketPassenger {
   passenger_name: string;

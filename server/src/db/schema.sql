@@ -1,7 +1,13 @@
 -- ============================================================
--- Railway Reservation System (Team 11) - Database Schema
+-- Railway Reservation System (Team 11) — Database Schema v2.0
 -- CSE 2271 | Presidency University, Bengaluru
 -- IMPORTANT: All data is fictional for academic demonstration only.
+-- Changes from v1.0:
+--   + stations.region, stations.aliases columns
+--   + payments.razorpay_order_id, razorpay_payment_id, razorpay_signature
+--   + bookings.hold_expires_at (seat hold expiry)
+--   + bookings.booking_status expanded (HOLD_EXPIRED, PAYMENT_CANCELLED)
+--   + payments.payment_method expanded (RAZORPAY)
 -- ============================================================
 
 PRAGMA journal_mode = WAL;
@@ -15,8 +21,12 @@ CREATE TABLE IF NOT EXISTS stations (
     code        TEXT    NOT NULL UNIQUE COLLATE NOCASE,
     name        TEXT    NOT NULL,
     city        TEXT    NOT NULL,
-    state       TEXT    NOT NULL
+    state       TEXT    NOT NULL,
+    region      TEXT    NOT NULL DEFAULT 'South India',
+    aliases     TEXT    NOT NULL DEFAULT '',   -- comma-separated search aliases
+    active      INTEGER NOT NULL DEFAULT 1 CHECK(active IN (0,1))
 );
+CREATE INDEX IF NOT EXISTS idx_stations_code ON stations(code);
 
 -- ============================================================
 -- TRAINS
@@ -26,7 +36,7 @@ CREATE TABLE IF NOT EXISTS trains (
     train_number TEXT    NOT NULL UNIQUE,
     name         TEXT    NOT NULL,
     type         TEXT    NOT NULL DEFAULT 'EXPRESS'
-                 CHECK(type IN ('SUPERFAST','EXPRESS','PASSENGER')),
+                 CHECK(type IN ('SUPERFAST','EXPRESS','PASSENGER','MAIL')),
     active       INTEGER NOT NULL DEFAULT 1
                  CHECK(active IN (0,1))
 );
@@ -80,7 +90,7 @@ CREATE INDEX IF NOT EXISTS idx_schedules_date ON schedules(journey_date);
 CREATE INDEX IF NOT EXISTS idx_schedules_train ON schedules(train_id);
 
 -- ============================================================
--- SEAT INVENTORY (per schedule per class - THE atomic lock target)
+-- SEAT INVENTORY (per schedule per class)
 -- CHECK constraint enforces zero-overbooking at DB level
 -- ============================================================
 CREATE TABLE IF NOT EXISTS seat_inventory (
@@ -99,8 +109,7 @@ CREATE TABLE IF NOT EXISTS seat_inventory (
 CREATE INDEX IF NOT EXISTS idx_inventory_schedule ON seat_inventory(schedule_id);
 
 -- ============================================================
--- BOOKINGS (reservation header record)
--- idempotency_key prevents duplicate submission effects
+-- BOOKINGS (reservation header record) — v2.0 adds hold_expires_at
 -- ============================================================
 CREATE TABLE IF NOT EXISTS bookings (
     id                INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -115,13 +124,14 @@ CREATE TABLE IF NOT EXISTS bookings (
     booking_status    TEXT    NOT NULL DEFAULT 'PENDING_PAYMENT'
                       CHECK(booking_status IN (
                         'PENDING_PAYMENT','CONFIRMED','WAITING_LIST',
-                        'FAILED','CANCELLED'
+                        'FAILED','CANCELLED','HOLD_EXPIRED','PAYMENT_CANCELLED'
                       )),
     payment_status    TEXT    NOT NULL DEFAULT 'PENDING'
-                      CHECK(payment_status IN ('PENDING','PAID','FAILED','REFUNDED')),
+                      CHECK(payment_status IN ('PENDING','PAID','FAILED','REFUNDED','CANCELLED')),
     contact_email     TEXT    NOT NULL,
     contact_phone     TEXT    NOT NULL,
     idempotency_key   TEXT    NOT NULL UNIQUE,
+    hold_expires_at   TEXT,   -- ISO timestamp; NULL = no hold needed
     created_at        TEXT    NOT NULL DEFAULT (datetime('now')),
     updated_at        TEXT    NOT NULL DEFAULT (datetime('now'))
 );
@@ -131,7 +141,7 @@ CREATE INDEX IF NOT EXISTS idx_bookings_phone ON bookings(contact_phone);
 CREATE INDEX IF NOT EXISTS idx_bookings_schedule ON bookings(schedule_id);
 
 -- ============================================================
--- BOOKING PASSENGERS (individual passenger records)
+-- BOOKING PASSENGERS
 -- ============================================================
 CREATE TABLE IF NOT EXISTS booking_passengers (
     id               INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -149,24 +159,28 @@ CREATE TABLE IF NOT EXISTS booking_passengers (
 CREATE INDEX IF NOT EXISTS idx_bp_booking ON booking_passengers(booking_id);
 
 -- ============================================================
--- PAYMENTS (immutable payment attempt log)
+-- PAYMENTS — v2.0 adds razorpay_order_id, razorpay_payment_id, razorpay_signature
 -- ============================================================
 CREATE TABLE IF NOT EXISTS payments (
-    id             INTEGER PRIMARY KEY AUTOINCREMENT,
-    booking_id     INTEGER NOT NULL REFERENCES bookings(id),
-    transaction_id TEXT    NOT NULL UNIQUE,
-    amount         REAL    NOT NULL CHECK(amount > 0),
-    payment_method TEXT    NOT NULL DEFAULT 'SIM'
-                   CHECK(payment_method IN ('SIM','CARD','UPI')),
-    status         TEXT    NOT NULL
-                   CHECK(status IN ('PENDING','SUCCESS','FAILED','REFUNDED')),
-    failure_reason TEXT,
-    created_at     TEXT    NOT NULL DEFAULT (datetime('now'))
+    id                    INTEGER PRIMARY KEY AUTOINCREMENT,
+    booking_id            INTEGER NOT NULL REFERENCES bookings(id),
+    transaction_id        TEXT    NOT NULL UNIQUE,
+    amount                REAL    NOT NULL CHECK(amount > 0),
+    payment_method        TEXT    NOT NULL DEFAULT 'SIM'
+                          CHECK(payment_method IN ('SIM','CARD','UPI','RAZORPAY','NETBANKING')),
+    status                TEXT    NOT NULL
+                          CHECK(status IN ('PENDING','SUCCESS','FAILED','REFUNDED','CANCELLED')),
+    razorpay_order_id     TEXT,    -- Razorpay order ID (rzp_order_*)
+    razorpay_payment_id   TEXT,    -- Razorpay payment ID (pay_*)
+    razorpay_signature    TEXT,    -- Razorpay HMAC signature (verified server-side)
+    failure_reason        TEXT,
+    created_at            TEXT    NOT NULL DEFAULT (datetime('now'))
 );
 CREATE INDEX IF NOT EXISTS idx_payments_booking ON payments(booking_id);
+CREATE INDEX IF NOT EXISTS idx_payments_rzp_order ON payments(razorpay_order_id);
 
 -- ============================================================
--- CANCELLATIONS (one-to-one with cancelled bookings)
+-- CANCELLATIONS
 -- ============================================================
 CREATE TABLE IF NOT EXISTS cancellations (
     id                     INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -177,12 +191,13 @@ CREATE TABLE IF NOT EXISTS cancellations (
     cancellation_charge    REAL    NOT NULL CHECK(cancellation_charge >= 0),
     refund_amount          REAL    NOT NULL CHECK(refund_amount >= 0),
     refund_status          TEXT    NOT NULL DEFAULT 'INITIATED'
-                           CHECK(refund_status IN ('INITIATED','PROCESSED','FAILED')),
+                           CHECK(refund_status IN ('INITIATED','PROCESSED','FAILED','SKIPPED')),
+    razorpay_refund_id     TEXT,   -- Razorpay refund ID if real refund issued
     cancelled_at           TEXT    NOT NULL DEFAULT (datetime('now'))
 );
 
 -- ============================================================
--- WAITING LIST QUEUE (FIFO promotion order)
+-- WAITING LIST QUEUE
 -- ============================================================
 CREATE TABLE IF NOT EXISTS waiting_list_queue (
     id                    INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -197,7 +212,7 @@ CREATE TABLE IF NOT EXISTS waiting_list_queue (
 CREATE INDEX IF NOT EXISTS idx_wlq_lookup ON waiting_list_queue(schedule_id, class_code, status, queue_position);
 
 -- ============================================================
--- AUDIT LOGS (non-sensitive system event trail)
+-- AUDIT LOGS
 -- ============================================================
 CREATE TABLE IF NOT EXISTS audit_logs (
     id          INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -205,7 +220,8 @@ CREATE TABLE IF NOT EXISTS audit_logs (
                 CHECK(event_type IN (
                   'BOOKING_CREATED','PAYMENT_PROCESSED','PAYMENT_FAILED',
                   'TICKET_CANCELLED','WL_PROMOTED','ADMIN_LOGIN',
-                  'ADMIN_MODIFIED','REFUND_PROCESSED'
+                  'ADMIN_MODIFIED','REFUND_PROCESSED','HOLD_EXPIRED',
+                  'RAZORPAY_WEBHOOK'
                 )),
     booking_id  INTEGER REFERENCES bookings(id),
     description TEXT    NOT NULL,
@@ -214,7 +230,7 @@ CREATE TABLE IF NOT EXISTS audit_logs (
 );
 
 -- ============================================================
--- ADMIN USERS (bcrypt-hashed, never plaintext passwords)
+-- ADMIN USERS
 -- ============================================================
 CREATE TABLE IF NOT EXISTS admin_users (
     id            INTEGER PRIMARY KEY AUTOINCREMENT,
