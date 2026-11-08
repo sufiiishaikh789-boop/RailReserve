@@ -2,6 +2,7 @@
 import type { Request, Response, NextFunction } from 'express';
 import { BookingRepository } from '../repositories/BookingRepository.js';
 import { TrainRepository } from '../repositories/TrainRepository.js';
+import { UserRepository } from '../repositories/UserRepository.js';
 import { validatePassengers, validateContactInfo, validateClassCode, validateIdempotencyKey } from '../utils/validators.js';
 import { calculateFare, calculateRefund, calculateHoursToDeparture } from '../utils/refund.js';
 import { generateTransactionId } from '../utils/pnr.js';
@@ -11,9 +12,11 @@ import type {
   CancellationPreview, CancellationResponse
 } from '../types/index.js';
 import { CLASS_NAMES } from '../types/index.js';
+import QRCode from 'qrcode';
 
 const bookingRepo = new BookingRepository();
 const trainRepo = new TrainRepository();
+const userRepo = new UserRepository();
 
 export class BookingController {
   // POST /api/bookings
@@ -73,6 +76,23 @@ export class BookingController {
 
       const fareInfo = calculateFare(classInfo.base_fare, body.passengers.length, schedule.train_type);
 
+      // --- Link booking to authenticated passenger (if logged in) ---
+      if (req.passengerUser) {
+        try {
+          userRepo.linkBookingToUser(booking.id, req.passengerUser.id);
+          userRepo.createNotification({
+            user_id: req.passengerUser.id,
+            type: 'BOOKING_CREATED',
+            title: 'Booking Created',
+            message: `Your booking (PNR: ${booking.pnr_number}) has been created. Complete payment to confirm.`,
+            booking_id: booking.id,
+          });
+        } catch (linkErr) {
+          // Non-fatal: log but don't fail the booking creation
+          console.error('[BOOKING] Failed to link booking to user account:', linkErr);
+        }
+      }
+
       res.status(201).json({
         success: true,
         booking_id: booking.id,
@@ -116,25 +136,32 @@ export class BookingController {
         return;
       }
 
-      const isWL = false; // Will be determined by existing passenger statuses
       const txnId = generateTransactionId();
 
       if (outcome === 'SUCCESS') {
-        const passengers = bookingRepo.findPassengersByBookingId(bookingId);
-        const isWaitingList = passengers.length > 0 &&
-          passengers.every(() => {
-            // Check current inventory to determine if CNF or WL
-            const inv = trainRepo.getInventory(booking.schedule_id, booking.class_code);
-            return inv ? inv.available_seats === 0 : false;
-          });
-
-        // Re-check inventory to determine actual status at confirmation time
+        // Determine if booking should be confirmed or placed on WL
+        // by checking current inventory at confirmation time
         const inv = trainRepo.getInventory(booking.schedule_id, booking.class_code);
-        const actualIsWL = inv ? inv.available_seats < booking.total_passengers : false;
+        const isWaitingList = inv ? inv.available_seats < booking.total_passengers : false;
 
-        bookingRepo.confirmBookingAfterPayment(bookingId, txnId, actualIsWL);
+        bookingRepo.confirmBookingAfterPayment(bookingId, txnId, isWaitingList);
 
         const updatedBooking = bookingRepo.findBookingById(bookingId)!;
+
+        // --- Send notification to linked passenger account (if any) ---
+        if (req.passengerUser) {
+          try {
+            const statusLabel = isWaitingList ? 'placed on the Waiting List' : 'CONFIRMED';
+            userRepo.createNotification({
+              user_id: req.passengerUser.id,
+              type: 'PAYMENT_SUCCESS',
+              title: 'Payment Successful',
+              message: `Your booking (PNR: ${updatedBooking.pnr_number}) is ${statusLabel}.`,
+              booking_id: bookingId,
+            });
+          } catch { /* non-fatal */ }
+        }
+
         res.json({
           success: true,
           transaction_id: txnId,
@@ -160,9 +187,9 @@ export class BookingController {
   }
 
   // GET /api/bookings/pnr/:pnr
-  getTicket(req: Request, res: Response, next: NextFunction): void {
+  async getTicket(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const { pnr } = req.params;
+      const pnr = String(req.params.pnr);
       const { email, phone } = req.query;
 
       if (!pnr) throw new AppError('PNR number is required', 400);
@@ -170,13 +197,16 @@ export class BookingController {
       const booking = bookingRepo.findBookingByPNR(pnr.toUpperCase());
       if (!booking) throw new AppError('Booking not found for this PNR', 404);
 
-      // Scope verification: require at least one contact match for non-admin
-      if (email || phone) {
-        const emailMatch = email && booking.contact_email.toLowerCase() === String(email).toLowerCase();
-        const phoneMatch = phone && booking.contact_phone === String(phone).replace(/\s/g, '');
-        if (!emailMatch && !phoneMatch) {
-          throw new AppError('Contact information does not match booking records', 403);
-        }
+      // Scope verification: ALWAYS require at least one contact match (v3.0 FIX)
+      // Previously: if neither email nor phone was provided, verification was skipped entirely,
+      // allowing any PNR to be looked up without authentication. Now we reject if no contact is given.
+      if (!email && !phone) {
+        throw new AppError('Email or phone number is required to verify ticket ownership', 400);
+      }
+      const emailMatch = email && booking.contact_email.toLowerCase() === String(email).toLowerCase();
+      const phoneMatch = phone && booking.contact_phone === String(phone).replace(/\s/g, '');
+      if (!emailMatch && !phoneMatch) {
+        throw new AppError('Contact information does not match booking records', 403);
       }
 
       const passengers = bookingRepo.findPassengersByBookingId(booking.id);
@@ -201,6 +231,27 @@ export class BookingController {
       // Get departure/arrival times from train routes
       const depRoute = schedule ? trainRepo.getTrainRouteByStationId(schedule.train_id, booking.source_station_id) : null;
       const arrRoute = schedule ? trainRepo.getTrainRouteByStationId(schedule.train_id, booking.dest_station_id)   : null;
+
+      // Generate verification QR Code
+      let qrCodeDataUrl: string | undefined;
+      try {
+        const qrPayload = JSON.stringify({
+          pnr: booking.pnr_number,
+          train: schedule?.train_number || 'N/A',
+          route: `${sourceCode}->${destCode}`,
+          doj: booking.journey_date,
+          status: booking.booking_status,
+          passengers: booking.total_passengers,
+          sys: 'RailReserve-Team11-CSE2271',
+        });
+        qrCodeDataUrl = await QRCode.toDataURL(qrPayload, {
+          width: 220,
+          margin: 1,
+          color: { dark: '#1e293b', light: '#ffffff' },
+        });
+      } catch (qrErr) {
+        console.warn('[QR] QR generation error (non-fatal):', qrErr);
+      }
 
       const eticket: ETicket = {
         pnr_number: booking.pnr_number,
@@ -243,6 +294,7 @@ export class BookingController {
         disclaimer:
           '⚠️ ACADEMIC DEMONSTRATION TICKET — Fictional Data Only. ' +
           'Not a real railway ticket. No actual journey or payment processed.',
+        qr_code: qrCodeDataUrl,
       };
 
       res.json({ success: true, ticket: eticket });
@@ -271,7 +323,7 @@ export class BookingController {
   // GET /api/bookings/:pnr/cancellation-preview
   getCancellationPreview(req: Request, res: Response, next: NextFunction): void {
     try {
-      const { pnr } = req.params;
+      const pnr = String(req.params.pnr);
       const booking = bookingRepo.findBookingByPNR(pnr.toUpperCase());
       if (!booking) throw new AppError('Booking not found', 404);
 
@@ -296,12 +348,12 @@ export class BookingController {
       // Get departure time for calculation
       const schedule = trainRepo.findScheduleById(booking.schedule_id);
       const sourceRoute = schedule
-        ? trainRepo.getTrainRoute(schedule.train_id, '')
+        ? trainRepo.getTrainRouteByStationId(schedule.train_id, booking.source_station_id)
         : null;
 
       const hoursToDeparture = calculateHoursToDeparture(
         booking.journey_date,
-        sourceRoute ? undefined : undefined // Use midnight if unknown
+        sourceRoute?.departure_time || undefined
       );
 
       if (hoursToDeparture < 0) {
@@ -351,7 +403,7 @@ export class BookingController {
   // POST /api/bookings/:pnr/cancel
   cancelBooking(req: Request, res: Response, next: NextFunction): void {
     try {
-      const { pnr } = req.params;
+      const pnr = String(req.params.pnr);
       const { contact_email, contact_phone } = req.body as {
         contact_email?: string;
         contact_phone?: string;

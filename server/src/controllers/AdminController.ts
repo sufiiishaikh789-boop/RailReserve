@@ -112,7 +112,11 @@ export class AdminController {
       const db = getDatabase();
       const inventory = db
         .prepare('SELECT * FROM seat_inventory WHERE schedule_id = ? AND class_code = ?')
-        .get(Number(scheduleId), classCode);
+        .get(Number(scheduleId), String(classCode)) as {
+          id: number; schedule_id: number; class_code: string;
+          total_seats: number; available_seats: number;
+          waiting_list_count: number; max_waiting_list: number;
+        } | undefined;
 
       if (!inventory) {
         throw new AppError('Inventory record not found', 404);
@@ -123,23 +127,23 @@ export class AdminController {
 
       if (total_seats !== undefined) {
         updates.push('total_seats = ?', 'available_seats = available_seats + (? - total_seats)');
-        values.push(total_seats, total_seats);
+        values.push(Number(total_seats), Number(total_seats));
       }
       if (max_waiting_list !== undefined) {
         updates.push('max_waiting_list = ?');
-        values.push(max_waiting_list);
+        values.push(Number(max_waiting_list));
       }
 
       if (updates.length === 0) {
         throw new AppError('No valid fields to update', 400);
       }
 
-      values.push(Number(scheduleId), classCode);
+      const whereValues: (number | string)[] = [Number(scheduleId), String(classCode)];
 
       db.prepare(`
         UPDATE seat_inventory SET ${updates.join(', ')}
         WHERE schedule_id = ? AND class_code = ?
-      `).run(...values);
+      `).run(...[...values, ...whereValues]);
 
       const adminUser = (req as Request & { adminUser?: { username: string } }).adminUser;
       db.prepare(`

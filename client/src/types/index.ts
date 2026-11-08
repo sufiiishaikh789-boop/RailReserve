@@ -1,6 +1,6 @@
 // Shared TypeScript types for client — mirrors server types
 export type ClassCode = '1A' | '2A' | '3A' | 'SL' | 'CC' | '2S';
-export type BookingStatus = 'PENDING_PAYMENT' | 'CONFIRMED' | 'WAITING_LIST' | 'FAILED' | 'CANCELLED';
+export type BookingStatus = 'PENDING_PAYMENT' | 'CONFIRMED' | 'WAITING_LIST' | 'FAILED' | 'CANCELLED' | 'HOLD_EXPIRED' | 'PAYMENT_CANCELLED';
 export type PaymentStatus = 'PENDING' | 'PAID' | 'FAILED' | 'REFUNDED';
 export type PassengerStatus = 'CONFIRMED' | 'WAITING_LIST' | 'CANCELLED' | 'PENDING';
 export type Gender = 'M' | 'F' | 'O';
@@ -120,6 +120,7 @@ export interface ETicket {
   contact_phone: string;
   booked_at: string;
   disclaimer: string;
+  qr_code?: string;
 }
 
 
@@ -158,3 +159,50 @@ export interface BookingWizardState {
   // Step 5: Ticket
   ticket: ETicket | null;
 }
+
+export interface UnreservedTicket {
+  id: number;
+  ticket_number: string;
+  source_code: string;
+  source_name: string;
+  source_city: string;
+  dest_code: string;
+  dest_name: string;
+  dest_city: string;
+  journey_date: string;
+  passenger_count: number;
+  passenger_names: string;
+  train_type: 'ORDINARY' | 'MAIL_EXPRESS' | 'SUPERFAST';
+  distance_km: number;
+  fare_per_passenger: number;
+  total_fare: number;
+  booking_status: 'CONFIRMED' | 'EXPIRED' | 'CANCELLED';
+  payment_status: 'PENDING' | 'PAID' | 'FAILED';
+  transaction_id?: string;
+  valid_until: string;
+  qr_code?: string;
+  contact_email?: string;
+  contact_phone?: string;
+  created_at: string;
+}
+
+export interface PlatformTicket {
+  id: number;
+  ticket_number: string;
+  station_code: string;
+  station_name: string;
+  station_city: string;
+  ticket_count: number;
+  fare_per_ticket: number;
+  total_fare: number;
+  visitor_name: string;
+  contact_phone?: string;
+  valid_from: string;
+  valid_until: string;
+  booking_status: 'ACTIVE' | 'EXPIRED';
+  payment_status: 'PENDING' | 'PAID' | 'FAILED';
+  transaction_id?: string;
+  qr_code?: string;
+  created_at: string;
+}
+

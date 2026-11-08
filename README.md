@@ -10,7 +10,7 @@
 ## Quick Start
 
 ### Prerequisites
-- Node.js v18+ (v24 recommended — uses built-in `node:sqlite`)
+- Node.js v22.5+ (v24.18+ recommended — uses built-in `node:sqlite`)
 - npm v9+
 
 ### 1 — Backend Setup
@@ -18,7 +18,7 @@
 ```bash
 cd server
 npm install
-npm run db:seed        # Seed fictional demo data
+npm run db:seed        # Seed fictional demo data (42 trains, 55 stations, 1,470 schedules)
 npm run dev            # Starts on http://localhost:5000
 ```
 
@@ -34,18 +34,20 @@ npm run dev            # Starts on http://localhost:5173
 
 | Role | Detail |
 | :--- | :--- |
-| **Admin login** | username: `admin`, password: `PresidencyAdmin2026!` |
+| **Admin login** | username: `admin`, password: `PresidencyAdmin2026!` (set via `ADMIN_PASSWORD` env var) |
 | **Demo PNR lookup** | PNR: `PNR-DEMO01`, email: `demo.passenger@example.com` |
+| **Passenger registration** | Self-serve registration via UI `/register` or login `/login` |
 
-### Demo Train Routes
+### Demo Train Services (Fictional Academic Data)
 
-| Train | Route | Type | Seats |
-| :--- | :--- | :--- | :--- |
-| 12028 Shatabdi | SBC → MAS | SUPERFAST | Available |
-| 56501 Passenger | SBC → MYS | ORDINARY | WL Only |
-| 12027 Express | SBC → HYB | EXPRESS | Multiple classes |
-| 12601 Express | MAS → TVC | EXPRESS | Overnight |
-| 11013 Mail | SBC → MAS | EXPRESS | Multi-class |
+| Train | Name | Route | Type | Demo Purpose |
+| :--- | :--- | :--- | :--- | :--- |
+| `D0002` | Demo Shatabdi Express | SBC → MAS | SUPERFAST | Standard confirmed seat booking flow |
+| `D0005` | Demo Passenger Local | SBC → TK | PASSENGER | Waiting-list allocation demo (always WL) |
+| `D0006` | Demo Night Express | SBC → HYB | SUPERFAST | Multi-class overnight journey |
+| `D0007` | Demo Garib Rath Express | MAS → TVC | EXPRESS | 11-stop Kerala coastal corridor |
+| `D0023` | Demo Delhi-Howrah Rajdhani | NDLS → HWH | SUPERFAST | Long-distance East-North corridor |
+| `D0038` | Demo Nilgiri SF Express | MAS → CBE | SUPERFAST | Daytime intercity express |
 
 ---
 
@@ -60,8 +62,8 @@ npm run dev            # Starts on http://localhost:5173
 | `npm start` | Run compiled production server |
 | `npm run db:seed` | Seed fictional demo data (clears existing) |
 | `npm run db:reset` | Drop and recreate schema only |
-| `npm test` | Run all 27 automated test cases |
-| `npm run test:coverage` | Run tests with Istanbul coverage report |
+| `npm test` | Run all 55 automated integration test cases |
+| `npm run test:coverage` | Run tests with coverage report |
 
 ### Frontend (`client/`)
 

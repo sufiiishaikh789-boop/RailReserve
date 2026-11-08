@@ -1,23 +1,38 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { BrowserRouter, Routes, Route, useNavigate, Link, useLocation } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, useNavigate, Link, useLocation, Navigate } from 'react-router-dom';
 import {
   Train, Search, Users, CreditCard, Ticket, Clock, MapPin,
   ChevronRight, AlertTriangle, CheckCircle, XCircle, Info,
   LogOut, LayoutDashboard, Printer, ArrowLeft,
-  RefreshCw, Shield, ArrowRightLeft, Filter, TrendingUp,
-  IndianRupee, Star, Navigation, Activity, ChevronDown, ChevronUp,
-  FileText, BarChart2, Wifi, Globe
+  RefreshCw, Shield, ArrowRightLeft, Filter,
+  IndianRupee, Navigation, Activity, ChevronDown, ChevronUp,
+  FileText, UserCircle, Bell
 } from 'lucide-react';
 import { apiClient } from './api';
 import type {
   Station, TrainResult, ClassAvailability, PassengerInput,
-  FareBreakdown, ETicket, CancellationPreview, ClassCode
+  ETicket, CancellationPreview, ClassCode
 } from './types';
 import {
   formatDate, formatTime, formatDuration, formatINR,
-  getBookingStatusLabel, getPassengerStatusLabel, getTrainTypeBadge,
-  getMinDate, getMaxDate, generateIdempotencyKey, classCodeColor
+  getBookingStatusLabel, getPassengerStatusLabel,
+  getMinDate, getMaxDate, generateIdempotencyKey
 } from './utils';
+import { AuthProvider, useAuth } from './context/AuthContext';
+import { LoginPage } from './pages/LoginPage';
+import { RegisterPage } from './pages/RegisterPage';
+import { ForgotPasswordPage } from './pages/ForgotPasswordPage';
+import { ResetPasswordPage } from './pages/ResetPasswordPage';
+import { PassengerDashboardPage } from './pages/PassengerDashboardPage';
+import { UnreservedBookingPage } from './pages/UnreservedBookingPage';
+import { PlatformBookingPage } from './pages/PlatformBookingPage';
+import { MyBookingsPage } from './pages/MyBookingsPage';
+import { PnrStatusPage } from './pages/PnrStatusPage';
+import { RefundsPage } from './pages/RefundsPage';
+import { SupportPage } from './pages/SupportPage';
+import { ProfilePage } from './pages/ProfilePage';
+import { PaymentPage } from './pages/PaymentPage';
+import { ErrorBoundary } from './components/ErrorBoundary';
 
 // ============================================================
 // STATION AUTOCOMPLETE COMPONENT
@@ -32,7 +47,7 @@ interface StationAutocompleteProps {
   icon?: React.ReactNode;
 }
 
-function StationAutocomplete({ value, displayValue, onSelect, placeholder, label, id, icon }: StationAutocompleteProps) {
+function StationAutocomplete({ value: _value, displayValue, onSelect, placeholder, label, id, icon }: StationAutocompleteProps) {
   const [query, setQuery] = useState(displayValue);
   const [results, setResults] = useState<Station[]>([]);
   const [open, setOpen] = useState(false);
@@ -139,7 +154,9 @@ function StationAutocomplete({ value, displayValue, onSelect, placeholder, label
 // NAVBAR
 // ============================================================
 function Navbar() {
+  const location = useLocation();
   const [adminToken, setAdminToken] = useState(localStorage.getItem('adminToken'));
+  const { user, logout } = useAuth();
   const navigate = useNavigate();
 
   const handleAdminLogout = () => {
@@ -153,6 +170,13 @@ function Navbar() {
     window.addEventListener('storage', onStorage);
     return () => window.removeEventListener('storage', onStorage);
   }, []);
+
+  const isAuthPage = ['/login', '/register', '/forgot-password', '/reset-password'].includes(location.pathname);
+  const isDashboardPage = location.pathname.startsWith('/app');
+
+  if (isAuthPage || isDashboardPage) {
+    return null;
+  }
 
   return (
     <nav className="nav">
@@ -171,9 +195,38 @@ function Navbar() {
           <Link to="/lookup" className="btn btn-ghost" style={{ color: '#94a3b8', fontSize: '0.83rem', padding: '0.4rem 0.75rem' }}>
             <Search size={14} /> PNR Lookup
           </Link>
-          <Link to="/history" className="btn btn-ghost" style={{ color: '#94a3b8', fontSize: '0.83rem', padding: '0.4rem 0.75rem' }}>
-            <FileText size={14} /> My Bookings
-          </Link>
+
+          {/* Passenger auth nav */}
+          {user ? (
+            <>
+              <Link to="/dashboard" className="btn btn-ghost" style={{ color: '#94a3b8', fontSize: '0.83rem', padding: '0.4rem 0.75rem' }}>
+                <Bell size={14} />
+                {(user.unread_notifications ?? 0) > 0 && (
+                  <span style={{ background: '#ef4444', color: '#fff', borderRadius: '9999px', fontSize: '0.6rem', padding: '0 4px', marginLeft: '2px' }}>
+                    {user.unread_notifications}
+                  </span>
+                )}
+                {' '}Dashboard
+              </Link>
+              <Link to="/profile" className="btn btn-ghost" style={{ color: '#94a3b8', fontSize: '0.83rem', padding: '0.4rem 0.75rem' }}>
+                <UserCircle size={14} /> {user.full_name.split(' ')[0]}
+              </Link>
+              <button onClick={() => { logout(); navigate('/'); }} className="btn btn-ghost" style={{ color: '#f87171', fontSize: '0.83rem', padding: '0.4rem 0.65rem' }}>
+                <LogOut size={14} />
+              </button>
+            </>
+          ) : (
+            <>
+              <Link to="/login" className="btn btn-ghost" style={{ color: '#94a3b8', fontSize: '0.83rem', padding: '0.4rem 0.75rem' }}>
+                Sign In
+              </Link>
+              <Link to="/register" className="btn btn-primary" style={{ fontSize: '0.83rem', padding: '0.4rem 0.9rem' }}>
+                Register
+              </Link>
+            </>
+          )}
+
+          {/* Admin nav */}
           {adminToken ? (
             <>
               <Link to="/admin" className="btn btn-ghost" style={{ color: '#94a3b8', fontSize: '0.83rem', padding: '0.4rem 0.75rem' }}>
@@ -184,8 +237,8 @@ function Navbar() {
               </button>
             </>
           ) : (
-            <Link to="/admin/login" className="btn btn-ghost" style={{ color: '#94a3b8', fontSize: '0.83rem', padding: '0.4rem 0.75rem' }}>
-              <Shield size={14} /> Admin
+            <Link to="/admin/login" className="btn btn-ghost" style={{ color: '#64748b', fontSize: '0.83rem', padding: '0.4rem 0.75rem' }}>
+              <Shield size={14} />
             </Link>
           )}
         </div>
@@ -434,8 +487,6 @@ function ResultsPage() {
   useEffect(() => { applyFilters(sortBy, filterClass, filterAvail); }, [sortBy, filterClass, filterAvail]);
 
   if (!state) return null;
-
-  const allClasses = [...new Set(trains.flatMap(t => t.classes.map(c => c.class_code)))];
 
   return (
     <div style={{ flex: 1, background: 'var(--bg-page)' }}>
@@ -800,6 +851,7 @@ function PassengerPage() {
           isWaitingList: res.is_waiting_list,
           train, selectedClass, date, from, to,
           contactEmail: email, contactPhone: phone,
+          passengers: passengers.map(p => ({ name: p.passenger_name, age: Number(p.age), gender: p.gender, berthPreference: p.berth_preference })),
         },
       });
     } catch (err) {
@@ -968,157 +1020,6 @@ function PassengerPage() {
 }
 
 // ============================================================
-// PAYMENT PAGE — Razorpay-ready simulation
-// ============================================================
-function PaymentPage() {
-  const location = useLocation();
-  const navigate = useNavigate();
-  const state = location.state as {
-    bookingId: number; pnrNumber: string; fareBreakdown: FareBreakdown;
-    isWaitingList: boolean; train: TrainResult; selectedClass: ClassAvailability;
-    date: string; from: string; to: string; contactEmail: string; contactPhone: string;
-  } | null;
-
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
-  const [outcome, setOutcome] = useState<'SUCCESS' | 'FAILURE' | null>(null);
-  const [payMode, setPayMode] = useState<'UPI' | 'CARD' | 'NETBANK'>('UPI');
-
-  useEffect(() => { if (!state) navigate('/'); }, [state, navigate]);
-  if (!state) return null;
-
-  const handlePayment = async (choice: 'SUCCESS' | 'FAILURE' | 'CANCEL') => {
-    setLoading(true);
-    setError('');
-    try {
-      const res = await apiClient.processPayment(state.bookingId, choice);
-      if (choice === 'CANCEL') { navigate(-1); return; }
-      if (res.success) {
-        navigate('/ticket', { state: { pnr: state.pnrNumber, email: state.contactEmail } });
-      } else {
-        setOutcome('FAILURE');
-      }
-    } catch (err) {
-      setError((err as Error).message);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const payModeIcons: Record<string, React.ReactNode> = {
-    UPI: <Wifi size={18} />,
-    CARD: <CreditCard size={18} />,
-    NETBANK: <Globe size={18} />,
-  };
-
-  return (
-    <div style={{ flex: 1, background: 'var(--bg-page)', padding: '2rem 1.25rem' }}>
-      <div className="container-main" style={{ maxWidth: '560px' }}>
-        <StepBar current={4} />
-
-        <div style={{ display: 'grid', gap: '1rem' }}>
-          {/* Payment mode selector (UI only — demo) */}
-          <div className="card" style={{ padding: '1.5rem' }}>
-            <h2 style={{ fontSize: '1rem', fontWeight: 700, color: '#1e3a5f', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              <CreditCard size={18} /> Payment Method
-            </h2>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: '0.65rem' }}>
-              {(['UPI','CARD','NETBANK'] as const).map(m => (
-                <div key={m} className={`payment-option ${payMode === m ? 'selected' : ''}`} onClick={() => setPayMode(m)}>
-                  <div style={{ color: payMode === m ? '#f97316' : '#64748b' }}>{payModeIcons[m]}</div>
-                  <div>
-                    <div style={{ fontWeight: 700, fontSize: '0.85rem', color: '#0f172a' }}>{m}</div>
-                    <div style={{ fontSize: '0.7rem', color: '#94a3b8' }}>
-                      {m === 'UPI' ? 'GPay/PhonePe' : m === 'CARD' ? 'Debit/Credit' : 'Net Banking'}
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-            <div className="alert alert-demo" style={{ marginTop: '1rem', fontSize: '0.8rem' }}>
-              <Info size={14} />
-              <span>Payment provider is in <strong>Demo Mode</strong>. No real payment will be processed. Razorpay sandbox can be enabled with credentials in <code>.env</code>.</span>
-            </div>
-          </div>
-
-          {/* Booking summary card */}
-          <div className="payment-card">
-            <div style={{ fontSize: '0.7rem', color: 'rgba(255,255,255,.5)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '0.5rem' }}>
-              Booking Summary
-            </div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1.25rem' }}>
-              <div>
-                <div style={{ fontSize: '1.1rem', fontWeight: 700, color: '#fff' }}>{state.from} → {state.to}</div>
-                <div style={{ color: 'rgba(255,255,255,.6)', fontSize: '0.85rem' }}>
-                  {state.train.train_number} · {formatDate(state.date)}
-                </div>
-                <div style={{ color: 'rgba(255,255,255,.5)', fontSize: '0.8rem' }}>
-                  {state.selectedClass.class_code} · {state.selectedClass.class_name}
-                </div>
-              </div>
-              <div style={{ textAlign: 'right' }}>
-                <div style={{ fontFamily: 'monospace', color: '#f97316', fontWeight: 800, fontSize: '1rem' }}>{state.pnrNumber}</div>
-                {state.isWaitingList && <span className="badge badge-waiting" style={{ marginTop: '0.3rem' }}>Waitlist</span>}
-              </div>
-            </div>
-            <div style={{ borderTop: '1px solid rgba(255,255,255,.15)', paddingTop: '1rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <div>
-                <div style={{ fontSize: '0.7rem', color: 'rgba(255,255,255,.5)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Amount Due</div>
-                <div style={{ fontSize: '1.85rem', fontWeight: 900, color: '#fff', fontVariantNumeric: 'tabular-nums' }}>
-                  {formatINR(state.fareBreakdown.total_fare)}
-                </div>
-              </div>
-              <div style={{ textAlign: 'right', fontSize: '0.78rem', color: 'rgba(255,255,255,.5)' }}>
-                <div>Mode: {payMode}</div>
-                <div>Demo simulation</div>
-              </div>
-            </div>
-          </div>
-
-          {/* Payment actions */}
-          <div className="card" style={{ padding: '1.5rem' }}>
-            {outcome === 'FAILURE' ? (
-              <div>
-                <div className="alert alert-danger" style={{ marginBottom: '1rem' }}>
-                  <XCircle size={16} /> Payment simulation failed. The booking is marked as failed and inventory has been released.
-                </div>
-                <div style={{ display: 'flex', gap: '0.65rem' }}>
-                  <button onClick={() => navigate('/')} className="btn btn-outline" style={{ flex: 1 }}>Go Home</button>
-                  <button onClick={() => navigate(-2)} className="btn btn-primary" style={{ flex: 1 }}>Try Again</button>
-                </div>
-              </div>
-            ) : (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
-                <div style={{ fontSize: '0.75rem', color: '#94a3b8', textAlign: 'center', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.25rem' }}>
-                  Simulate Payment Outcome
-                </div>
-                <button
-                  onClick={() => handlePayment('SUCCESS')}
-                  className="btn btn-success btn-lg btn-wide"
-                  disabled={loading}
-                  id="pay-success-btn"
-                >
-                  {loading ? <span className="spinner" style={{ width: '1.1rem', height: '1.1rem', borderWidth: '2px' }} /> : <CheckCircle size={18} />}
-                  ✅ Pay {formatINR(state.fareBreakdown.total_fare)} — Simulate Success
-                </button>
-                <button onClick={() => handlePayment('FAILURE')} className="btn btn-danger btn-wide" disabled={loading} id="pay-fail-btn">
-                  <XCircle size={16} /> Simulate Payment Failure
-                </button>
-                <button onClick={() => handlePayment('CANCEL')} className="btn btn-outline btn-wide" disabled={loading} id="pay-cancel-btn">
-                  ← Cancel & Go Back
-                </button>
-              </div>
-            )}
-
-            {error && <div className="alert alert-danger" style={{ marginTop: '1rem', fontSize: '0.85rem' }}><AlertTriangle size={14} /> {error}</div>}
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-// ============================================================
 // TICKET PAGE
 // ============================================================
 function TicketPage() {
@@ -1240,12 +1141,18 @@ function TicketPage() {
               })}
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.25rem', paddingTop: '1rem', borderTop: '1px dashed var(--border)' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: ticket.qr_code ? '1fr auto 1fr' : '1fr 1fr', gap: '1.25rem', paddingTop: '1rem', borderTop: '1px dashed var(--border)', alignItems: 'center' }}>
               <div>
                 <div className="ticket-label">Contact</div>
                 <div className="ticket-value" style={{ fontSize: '0.85rem' }}>{ticket.contact_email}</div>
                 <div style={{ color: '#475569', fontSize: '0.85rem' }}>{ticket.contact_phone}</div>
               </div>
+              {ticket.qr_code && (
+                <div style={{ textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                  <img src={ticket.qr_code} alt="Ticket QR Verification Code" style={{ width: '100px', height: '100px', borderRadius: '6px', border: '1px solid var(--border)', background: '#fff', padding: '3px' }} />
+                  <span style={{ fontSize: '0.62rem', color: '#64748b', marginTop: '0.2rem', fontWeight: 700, letterSpacing: '0.05em' }}>VERIFY PNR</span>
+                </div>
+              )}
               <div style={{ textAlign: 'right' }}>
                 <div className="ticket-label">Total Fare</div>
                 <div style={{ fontSize: '1.7rem', fontWeight: 900, color: '#1e3a5f', fontVariantNumeric: 'tabular-nums' }}>
@@ -1678,12 +1585,15 @@ function AdminDashboard() {
                   ) : bookings.map((b: any, i: number) => {
                     const si = getBookingStatusLabel(b.booking_status);
                     return (
-                      <tr key={i} style={{ borderBottom: '1px solid #f8fafc' }}
-                        onClick={() => navigate('/ticket', { state: { pnr: b.pnr_number, email: b.contact_email } })}
-                        className="card-hover" style={{ cursor: 'pointer', borderBottom: '1px solid #f8fafc' }}>
+                      <tr key={i}
+                        className="card-hover"
+                        style={{ cursor: 'pointer', borderBottom: '1px solid #f8fafc' }}
+                        onClick={() => navigate('/ticket', { state: { pnr: b.pnr_number, email: b.contact_email } })}>
                         <td style={{ padding: '0.7rem 1rem', fontFamily: 'monospace', fontWeight: 700, color: '#1e3a5f', fontSize: '0.82rem' }}>{b.pnr_number}</td>
                         <td style={{ padding: '0.7rem 1rem', color: '#374151', whiteSpace: 'nowrap' }}>{b.journey_date}</td>
-                        <td style={{ padding: '0.7rem 1rem', color: '#374151', whiteSpace: 'nowrap', fontSize: '0.8rem' }}>—</td>
+                        <td style={{ padding: '0.7rem 1rem', color: '#1e3a5f', fontWeight: 600, whiteSpace: 'nowrap', fontSize: '0.8rem' }}>
+                          {b.source_station_code && b.dest_station_code ? `${b.source_station_code} → ${b.dest_station_code}` : '—'}
+                        </td>
                         <td style={{ padding: '0.7rem 1rem' }}><span className="badge badge-confirmed">{b.class_code}</span></td>
                         <td style={{ padding: '0.7rem 1rem', color: '#374151' }}>{b.total_passengers}</td>
                         <td style={{ padding: '0.7rem 1rem', fontWeight: 700, whiteSpace: 'nowrap' }}>{formatINR(b.total_fare)}</td>
@@ -1702,7 +1612,7 @@ function AdminDashboard() {
           <div className="card" style={{ padding: '1.5rem' }}>
             <h2 style={{ fontSize: '0.95rem', fontWeight: 700, color: '#1e3a5f', marginBottom: '1rem' }}>Demo Train Network</h2>
             <div className="alert alert-info" style={{ marginBottom: '1rem', fontSize: '0.85rem' }}>
-              <Info size={14} /> 22 demonstration trains · 55 stations · 770+ schedules seeded for 35 days. All data is fictional for academic use only.
+              <Info size={14} /> 42 demonstration trains · 55 stations · 1,470 schedules seeded for 35 days. All data is fictional for academic use only.
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(280px,1fr))', gap: '0.65rem' }}>
               {[
@@ -1783,13 +1693,63 @@ function ErrorScreen({ message, onBack }: { message: string; onBack: () => void 
 }
 
 // ============================================================
-// APP ROOT
+// AUTH GUARDS & ROUTE WRAPPERS
 // ============================================================
-export default function App() {
+function ProtectedRoute({ children }: { children: React.ReactNode }) {
+  const { token, isLoading } = useAuth();
+  const location = useLocation();
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-slate-900 flex flex-col items-center justify-center text-white p-4">
+        <div className="w-12 h-12 rounded-2xl bg-orange-500/20 border border-orange-500/40 flex items-center justify-center mb-3 animate-pulse">
+          <Train className="w-6 h-6 text-orange-400" />
+        </div>
+        <p className="text-xs font-semibold text-slate-300">Restoring RailReserve session…</p>
+      </div>
+    );
+  }
+
+  if (!token) {
+    return <Navigate to="/login" state={{ from: location }} replace />;
+  }
+  return <>{children}</>;
+}
+
+function PublicAuthRoute({ children }: { children: React.ReactNode }) {
+  const { token, isLoading } = useAuth();
+
+  if (isLoading) {
+    return null;
+  }
+
+  if (token) {
+    return <Navigate to="/app" replace />;
+  }
+  return <>{children}</>;
+}
+
+function RootGateway() {
+  const { token, isLoading } = useAuth();
+
+  if (isLoading) {
+    return null;
+  }
+
+  if (token) {
+    return <Navigate to="/app" replace />;
+  }
+  return <Navigate to="/login" replace />;
+}
+
+function AppShell() {
+  const location = useLocation();
+  const isAuthPage = ['/login', '/register', '/forgot-password', '/reset-password'].includes(location.pathname);
+  const isDashboardPage = location.pathname.startsWith('/app');
+
   return (
-    <BrowserRouter>
-      <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
-        {/* Demo disclaimer banner */}
+    <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
+      {!isAuthPage && !isDashboardPage && (
         <div style={{
           background: 'linear-gradient(135deg,#7c2d12,#9a3412)',
           color: '#fed7aa',
@@ -1801,33 +1761,80 @@ export default function App() {
         }}>
           ⚠️ ACADEMIC DEMONSTRATION SYSTEM — TEAM 11 — CSE 2271 — PRESIDENCY UNIVERSITY, BENGALURU — ALL DATA IS FICTIONAL
         </div>
-        <Navbar />
+      )}
+      <Navbar />
+      <ErrorBoundary>
         <Routes>
-          <Route path="/" element={<SearchPage />} />
-          <Route path="/results" element={<ResultsPage />} />
-          <Route path="/passenger" element={<PassengerPage />} />
-          <Route path="/payment" element={<PaymentPage />} />
+          {/* Root Gateway — redirects unauthenticated users to /login, authenticated to /app */}
+          <Route path="/" element={<RootGateway />} />
+
+          {/* Passenger Authentication Routes */}
+          <Route path="/login" element={<PublicAuthRoute><LoginPage /></PublicAuthRoute>} />
+          <Route path="/register" element={<PublicAuthRoute><RegisterPage /></PublicAuthRoute>} />
+          <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+          <Route path="/reset-password" element={<ResetPasswordPage />} />
+
+          {/* Passenger App & Category Dashboard Routes */}
+          <Route path="/app" element={<ProtectedRoute><PassengerDashboardPage /></ProtectedRoute>} />
+          <Route path="/app/reserved" element={<ProtectedRoute><SearchPage /></ProtectedRoute>} />
+          <Route path="/app/unreserved" element={<ProtectedRoute><UnreservedBookingPage /></ProtectedRoute>} />
+          <Route path="/app/platform" element={<ProtectedRoute><PlatformBookingPage /></ProtectedRoute>} />
+          <Route path="/app/bookings" element={<ProtectedRoute><MyBookingsPage /></ProtectedRoute>} />
+          <Route path="/app/pnr-status" element={<ProtectedRoute><PnrStatusPage /></ProtectedRoute>} />
+          <Route path="/app/refunds" element={<ProtectedRoute><RefundsPage /></ProtectedRoute>} />
+          <Route path="/app/support" element={<ProtectedRoute><SupportPage /></ProtectedRoute>} />
+          <Route path="/app/profile" element={<ProtectedRoute><ProfilePage /></ProtectedRoute>} />
+          <Route path="/app/dashboard" element={<Navigate to="/app" replace />} />
+          <Route path="/dashboard" element={<Navigate to="/app" replace />} />
+
+          {/* Booking Engine & Journey Flow */}
+          <Route path="/search" element={<ProtectedRoute><SearchPage /></ProtectedRoute>} />
+          <Route path="/results" element={<ProtectedRoute><ResultsPage /></ProtectedRoute>} />
+          <Route path="/passenger" element={<ProtectedRoute><PassengerPage /></ProtectedRoute>} />
+          <Route path="/payment" element={<ProtectedRoute><PaymentPage /></ProtectedRoute>} />
           <Route path="/ticket" element={<TicketPage />} />
           <Route path="/lookup" element={<LookupPage />} />
           <Route path="/history" element={<HistoryPage />} />
+          <Route path="/profile" element={<ProtectedRoute><ProfilePage /></ProtectedRoute>} />
+
+          {/* Admin Portal */}
           <Route path="/admin/login" element={<AdminLoginPage />} />
           <Route path="/admin" element={<AdminDashboard />} />
+
+          {/* 404 Fallback */}
           <Route path="*" element={
-            <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: '1rem' }}>
+            <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: '1rem', padding: '4rem 1.25rem' }}>
               <Train size={48} color="#cbd5e1" />
               <div style={{ fontSize: '1.2rem', fontWeight: 700, color: '#374151' }}>Page Not Found</div>
-              <Link to="/" className="btn btn-primary">Go Home</Link>
+              <Link to="/app" className="btn btn-primary">Go to Home Dashboard</Link>
             </div>
           } />
         </Routes>
-        {/* Footer */}
+      </ErrorBoundary>
+
+      {!isAuthPage && !isDashboardPage && (
         <footer style={{ background: '#0a0f1e', color: '#64748b', padding: '1.5rem 1.25rem', fontSize: '0.78rem', textAlign: 'center', borderTop: '1px solid rgba(255,255,255,.05)' }}>
           <div style={{ marginBottom: '0.35rem' }}>
             <span style={{ color: '#f97316', fontWeight: 700 }}>RailReserve</span> — Team 11 · Software Design and Development · CSE 2271 · Presidency University, Bengaluru
           </div>
           <div>⚠️ Academic demonstration only. All train schedules, seat availability, and booking data are fictional.</div>
         </footer>
-      </div>
-    </BrowserRouter>
+      )}
+    </div>
+  );
+}
+
+// ============================================================
+// APP ROOT
+// ============================================================
+export default function App() {
+  return (
+    <ErrorBoundary>
+      <AuthProvider>
+        <BrowserRouter>
+          <AppShell />
+        </BrowserRouter>
+      </AuthProvider>
+    </ErrorBoundary>
   );
 }

@@ -22,12 +22,43 @@ if (!fs.existsSync(dataDir)) fs.mkdirSync(dataDir, { recursive: true });
 // Seed test database
 const SCHEMA_PATH = path.resolve(__dirname, '../src/db/schema.sql');
 const schema = fs.readFileSync(SCHEMA_PATH, 'utf-8');
+const MIGRATIONS_DIR = path.resolve(__dirname, '../src/db/migrations');
 
 export function resetTestDatabase(): void {
-  if (fs.existsSync(TEST_DB_PATH)) fs.unlinkSync(TEST_DB_PATH);
+  // On Windows, the SQLite file may be briefly locked by a previous connection.
+  // Retry deletion up to 3 times with a short delay before giving up.
+  if (fs.existsSync(TEST_DB_PATH)) {
+    let deleted = false;
+    for (let attempt = 0; attempt < 3; attempt++) {
+      try {
+        fs.unlinkSync(TEST_DB_PATH);
+        deleted = true;
+        break;
+      } catch (err: unknown) {
+        const code = (err as NodeJS.ErrnoException).code;
+        if (code === 'EBUSY' || code === 'EPERM') {
+          // Brief synchronous pause — acceptable in test setup context
+          const start = Date.now();
+          while (Date.now() - start < 100) { /* spin */ }
+        } else {
+          throw err;
+        }
+      }
+    }
+    if (!deleted && fs.existsSync(TEST_DB_PATH)) {
+      // Cannot delete — the file is still locked. Truncate instead.
+      fs.writeFileSync(TEST_DB_PATH, Buffer.alloc(0));
+    }
+  }
 
   const db = new DatabaseSync(TEST_DB_PATH);
   db.exec(schema);
+  if (fs.existsSync(MIGRATIONS_DIR)) {
+    const mFiles = fs.readdirSync(MIGRATIONS_DIR).filter((f) => f.endsWith('.sql')).sort();
+    for (const f of mFiles) {
+      db.exec(fs.readFileSync(path.join(MIGRATIONS_DIR, f), 'utf-8'));
+    }
+  }
 
   // Minimal seed data for tests
   // Stations

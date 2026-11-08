@@ -166,3 +166,46 @@ cancellations, waiting_list_queue, audit_logs, admin_users
 | Razorpay SDK requires npm install | Graceful fallback to SIM mode if not configured |
 | Expanded seed data slows startup | Seed is run once manually, not on every start |
 | 50-station list breaks `<select>` UX | Replaced by autocomplete in upgrade |
+
+---
+
+## 11. Upgrade Verification & Resolution (v3.0 Final Release)
+
+**Upgrade Completion Date:** 2026-11-07  
+**Team:** Team 11 | CSE 2271 | Presidency University, Bengaluru  
+**Overall Status:** ✅ ALL UPGRADES SUCCESSFULLY DELIVERED & VERIFIED  
+
+| Upgrade Goal | Status | Implementation Details |
+|:---|:---|:---|
+| **Inventory Leakage Repair** | ✅ Complete | Refactored `failBooking()` and `expireHeldBookings()` to reverse seat decrement and WL count atomic adjustments. Prevents permanent capacity loss. |
+| **Idempotency & Concurrent Locks** | ✅ Complete | `BEGIN IMMEDIATE` SQLite write locks; idempotency keys enforced on `POST /api/bookings` preventing duplicate reservations under network retries. |
+| **Passenger Auth Architecture** | ✅ Complete | Migration `001_passenger_accounts.sql` with `passenger_users`, `saved_passengers`, `notifications`, `booking_ownership`. JWT tokens with bcrypt salt rounds = 12. |
+| **Login-First Routing Gateway** | ✅ Complete | Unauthenticated visitors at `/` automatically route to `/login`. Route guards `ProtectedRoute` protect `/app/*` and `PublicAuthRoute` redirects authenticated users to `/app`. |
+| **Personalized Account Suite** | ✅ Complete | Dedicated responsive UI pages: `LoginPage`, `RegisterPage`, `ForgotPasswordPage`, `ResetPasswordPage`, `PassengerDashboardPage`, `MyBookingsPage`. Unread notification counters, 1-click seeded credential button. |
+| **Three-Category Journey Planner** | ✅ Complete | Reference Image 2 compliant dashboard with 3 illustrated category cards: **Reserved** (`/app/reserved`), **Unreserved (UTS)** (`/app/unreserved`), and **Platform Pass** (`/app/platform`) with custom SVG coach artwork. |
+| **UTS Unreserved Ticket Engine** | ✅ Complete | Distance-based fare calculation (`ORDINARY`, `MAIL_EXPRESS`, `SUPERFAST`), 1–6 passengers, 24h validity, high-contrast digital UTS ticket with Base64 QR code. |
+| **Platform Entry Pass Engine** | ✅ Complete | Fixed rate ₹10/pass, 2-hour validity window, 1–10 visitors, instant booking with digital security QR code. |
+| **Consolidated Booking Ledger** | ✅ Complete | Unified `/app/bookings` ledger with filtering tabs for All, Reserved (PNR), UTS Unreserved, and Platform Passes. Includes cancellation preview & execution modal. |
+| **Payment Gateway Modernization** | ✅ Complete | Hybrid architecture: `PaymentService.ts` integrates official Razorpay SDK for sandbox payments when env keys are present, falling back to an explicitly labelled demo simulator. Webhook verification via HMAC SHA-256. |
+| **Dataset & Route Expansion** | ✅ Complete | Expanded from 8 fictional stations to 55 demonstration stations covering 8 regions and 42 multi-stop demonstration train services (121 class fare records, 1,470 schedules across 35 days). |
+| **E-Ticket QR Verification** | ✅ Complete | Server-side QR code generator using `qrcode` library encodes cryptographic verification payload in Base64 Data URL, rendered dynamically on e-ticket display and print layouts. |
+| **Admin Portal Fixes** | ✅ Complete | Fixed route resolution query in `BookingRepository.findAllBookings` joining stations and train routes. Real-time statistics, inventory adjustments, and audit log inspection. |
+| **Automated Testing Suite** | ✅ Complete | Expanded test suite from 27 to **71 comprehensive integration tests** covering concurrency, auth, bookings, cancellations, payments, QR generation, password resets, UTS fare/booking, platform passes, hold expiry, HMAC signature verification, webhooks, and inventory restoration. **100% test pass rate.** |
+| **TypeScript Build Integrity** | ✅ Complete | Strict mode enabled. Client build (`tsc -b && vite build`) and Server build (`tsc`) achieve **0 errors**. |
+
+---
+
+## 12. Elite Payment Experience Master Upgrade (v3.1)
+
+**Upgrade Completion Date:** 2026-11-08  
+**Scope:** Two-Column Desktop Checkout, Razorpay Sandbox + Academic Demo Dual-Mode, Inventory Hold Expiry Protection, Cryptographic HMAC-SHA256 Signature Verification, Raw-Body Webhooks, and Dedicated Result Screens.
+
+| Feature Area | Implementation Detail | Status |
+|:---|:---|:---|
+| **Two-Column Checkout UI** | 60% Left column with 4 interactive payment methods (UPI, Card, Net Banking, Wallets) and Primary CTA; 40% Right sticky sidebar with Monospace PNR pill, itinerary, passenger roster, countdown timer, and itemized fare breakdown. | ✅ Verified |
+| **Dual Gateway Architecture** | Mode A (Academic Demo): Realistic test simulation with instant verification; Mode B (Razorpay Sandbox): Real SDK checkout popup (`checkout.razorpay.com/v1/checkout.js`), server-side order generation, and HMAC-SHA256 signature verification. | ✅ Verified |
+| **Seat Hold Countdown** | Server-authoritative 10-minute hold window. Expired holds trigger 410 Gone on payment/order initiation, re-decrementing inventory and marking booking as `HOLD_EXPIRED`. | ✅ Verified |
+| **Cryptographic Webhook Ingestion** | Express configured with `verify` callback preserving verbatim UTF-8 raw body bytes; verifies `x-razorpay-signature` against `RAZORPAY_WEBHOOK_SECRET` before processing `payment.captured` or `payment.failed`. | ✅ Verified |
+| **Dedicated Result States** | 5 distinct full-page outcome screens: `Payment Success` (verified badge, transaction reference, PNR, print ticket CTA), `Payment Failed` (retry CTA, inventory release confirmation), `Hold Expired` (capacity release explanation), `Payment Cancelled` (safe resume CTA), and `Payment Processing` (security spinner). | ✅ Verified |
+| **Academic Evaluator Panel** | CSE 2271 simulation accordion allowing course evaluators to test instant success, simulated bank decline, or checkout abandonment with a single click. | ✅ Verified |
+

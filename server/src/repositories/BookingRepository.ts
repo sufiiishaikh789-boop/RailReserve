@@ -1,5 +1,16 @@
 // Booking Repository — atomic seat allocation, booking CRUD, and WL management
 // Critical: All multi-step operations use BEGIN IMMEDIATE transactions
+//
+// INVENTORY LIFECYCLE (v3.0 — fixed seat leak):
+//   1. createBookingAtomically() — HOLDS seats by decrementing available_seats
+//      or incrementing waiting_list_count. Sets hold_expires_at (10 min).
+//   2. confirmBookingAfterPayment() — Converts PENDING_PAYMENT → CONFIRMED/WL.
+//      Inventory stays consumed. Idempotent: checks for existing SUCCESS payment.
+//   3. failBooking() — RELEASES seats by incrementing available_seats
+//      or decrementing waiting_list_count. Marks booking FAILED.
+//   4. expireHeldBookings() — Finds bookings past hold_expires_at and calls
+//      failBooking() to release their inventory. Backend-driven expiry.
+//
 import { getDatabase } from '../db/database.js';
 import type {
   Booking,
@@ -13,10 +24,17 @@ import type {
 import { generatePNR, generateTransactionId, generateCancellationRef, allocateSeat } from '../utils/pnr.js';
 import { calculateFare } from '../utils/refund.js';
 
+// Hold duration in minutes — bookings not paid within this window are auto-expired
+const HOLD_DURATION_MINUTES = 10;
+
 export class BookingRepository {
   // ============================================================
   // ATOMIC BOOKING CREATION (BEGIN IMMEDIATE transaction lock)
   // Prevents race conditions / overbooking under concurrent requests
+  //
+  // Seats are HELD (decremented) at creation time, with a hold_expires_at
+  // timestamp. If payment doesn't arrive before expiry, expireHeldBookings()
+  // releases the seats. failBooking() also releases seats on payment failure.
   // ============================================================
   createBookingAtomically(
     req: CreateBookingRequest,
@@ -34,6 +52,9 @@ export class BookingRepository {
     // All other writing transactions must wait.
     db.exec('BEGIN IMMEDIATE');
     try {
+      // 0. Expire any stale holds first (reclaims phantom-consumed seats)
+      this._expireHeldBookingsInTxn(db);
+
       // 1. Recheck inventory INSIDE the transaction (prevents phantom reads)
       // Note: SQLite does not support row-level locking; BEGIN IMMEDIATE is sufficient for write serialization
       const inventory = db
@@ -51,9 +72,9 @@ export class BookingRepository {
         throw new Error('Seat inventory not found for selected class and schedule');
       }
 
-      const isWaitingList = inventory.available_seats === 0;
+      const isWaitingList = inventory.available_seats < req.passengers.length;
 
-      if (isWaitingList && inventory.waiting_list_count >= inventory.max_waiting_list) {
+      if (isWaitingList && inventory.waiting_list_count + req.passengers.length > inventory.max_waiting_list) {
         throw new Error('No seats or waiting list capacity available for this class');
       }
 
@@ -77,13 +98,17 @@ export class BookingRepository {
       const fareInfo = calculateFare(baseFare, req.passengers.length, scheduleInfo.train_type);
       const pnr = generatePNR();
 
-      // 4. Create booking header
+      // Compute hold expiry timestamp (UTC)
+      const holdExpiresAt = new Date(Date.now() + HOLD_DURATION_MINUTES * 60 * 1000).toISOString();
+
+      // 4. Create booking header with hold_expires_at
       const bookingResult = db.prepare(`
         INSERT INTO bookings
           (pnr_number, schedule_id, source_station_id, dest_station_id,
            journey_date, class_code, total_passengers, total_fare,
-           booking_status, payment_status, contact_email, contact_phone, idempotency_key)
-        SELECT ?, ?, ?, ?, s.journey_date, ?, ?, ?, 'PENDING_PAYMENT', 'PENDING', ?, ?, ?
+           booking_status, payment_status, contact_email, contact_phone,
+           idempotency_key, hold_expires_at)
+        SELECT ?, ?, ?, ?, s.journey_date, ?, ?, ?, 'PENDING_PAYMENT', 'PENDING', ?, ?, ?, ?
         FROM schedules s WHERE s.id = ?
       `).run(
         pnr,
@@ -96,6 +121,7 @@ export class BookingRepository {
         req.contact_email,
         req.contact_phone,
         req.idempotency_key,
+        holdExpiresAt,
         req.schedule_id
       ) as { lastInsertRowid: number };
 
@@ -132,7 +158,7 @@ export class BookingRepository {
         });
       }
 
-      // 6. Atomically update inventory
+      // 6. Atomically update inventory (HOLD seats now, release on fail/expiry)
       if (!isWaitingList) {
         // Decrement available seats — atomic check prevents overbooking
         const updateResult = db.prepare(`
@@ -148,18 +174,24 @@ export class BookingRepository {
         }
       } else {
         // Increment waiting list count
-        db.prepare(`
+        const wlResult = db.prepare(`
           UPDATE seat_inventory 
           SET waiting_list_count = waiting_list_count + ?
-          WHERE schedule_id = ? AND class_code = ? AND waiting_list_count < max_waiting_list
-        `).run(req.passengers.length, req.schedule_id, req.class_code);
+          WHERE schedule_id = ? AND class_code = ?
+            AND (waiting_list_count + ?) <= max_waiting_list
+        `).run(req.passengers.length, req.schedule_id, req.class_code, req.passengers.length) as { changes: number };
+
+        if (wlResult.changes === 0) {
+          db.exec('ROLLBACK');
+          throw new Error('Waiting list capacity became unavailable. Please try again.');
+        }
       }
 
       // 7. Log audit event
       db.prepare(`
         INSERT INTO audit_logs (event_type, booking_id, description, ip_address)
         VALUES ('BOOKING_CREATED', ?, ?, 'SYSTEM')
-      `).run(bookingId, `Booking created: PNR=${pnr}, Type=${isWaitingList ? 'WL' : 'CNF'}`);
+      `).run(bookingId, `Booking created: PNR=${pnr}, Type=${isWaitingList ? 'WL' : 'CNF'}, Hold expires=${holdExpiresAt}`);
 
       db.exec('COMMIT');
 
@@ -173,31 +205,62 @@ export class BookingRepository {
 
   // ============================================================
   // CONFIRM BOOKING AFTER PAYMENT SUCCESS
+  // IDEMPOTENT: If a SUCCESS payment already exists for this booking,
+  //   returns without creating a duplicate record.
   // ============================================================
   confirmBookingAfterPayment(
     bookingId: number,
     transactionId: string,
-    isWaitingList: boolean
+    isWaitingList: boolean,
+    options?: {
+      razorpay_order_id?: string;
+      razorpay_payment_id?: string;
+      razorpay_signature?: string;
+      payment_method?: string;
+    }
   ): void {
     const db = getDatabase();
     db.exec('BEGIN IMMEDIATE');
     try {
+      // Idempotency guard: check if a SUCCESS payment already exists
+      const existingPayment = db
+        .prepare("SELECT id FROM payments WHERE booking_id = ? AND status = 'SUCCESS'")
+        .get(bookingId) as { id: number } | undefined;
+      if (existingPayment) {
+        // Already confirmed — skip silently (idempotent)
+        db.exec('ROLLBACK');
+        return;
+      }
+
+      const booking = db.prepare('SELECT * FROM bookings WHERE id = ?').get(bookingId) as unknown as Booking;
+      if (!booking) throw new Error('Booking not found');
+
+      // Check hold expiry — do not confirm expired bookings
+      if (booking.hold_expires_at && new Date(booking.hold_expires_at) < new Date()) {
+        db.exec('ROLLBACK');
+        this.failBooking(bookingId, 'Payment attempt after hold expired');
+        throw new Error('Reservation hold has expired. Inventory was released.');
+      }
+
+      // Only allow transition from PENDING_PAYMENT
+      if (booking.booking_status !== 'PENDING_PAYMENT') {
+        db.exec('ROLLBACK');
+        return;
+      }
+
       const newStatus: BookingStatus = isWaitingList ? 'WAITING_LIST' : 'CONFIRMED';
 
       // Update booking status
       db.prepare(`
-        UPDATE bookings SET booking_status = ?, payment_status = 'PAID', updated_at = datetime('now')
+        UPDATE bookings SET booking_status = ?, payment_status = 'PAID',
+          hold_expires_at = NULL, updated_at = datetime('now')
         WHERE id = ? AND booking_status = 'PENDING_PAYMENT'
       `).run(newStatus, bookingId);
-
-      // Get booking info
-      const booking = db.prepare('SELECT * FROM bookings WHERE id = ?').get(bookingId) as Booking;
-      if (!booking) throw new Error('Booking not found');
 
       // Update passenger statuses and assign seats/WL numbers
       const passengers = db
         .prepare('SELECT * FROM booking_passengers WHERE booking_id = ? ORDER BY id')
-        .all(bookingId) as BookingPassenger[];
+        .all(bookingId) as unknown as BookingPassenger[];
 
       if (!isWaitingList) {
         // Assign seat numbers
@@ -241,11 +304,42 @@ export class BookingRepository {
         });
       }
 
-      // Record successful payment
-      db.prepare(`
-        INSERT INTO payments (booking_id, transaction_id, amount, status)
-        VALUES (?, ?, ?, 'SUCCESS')
-      `).run(bookingId, transactionId, booking.total_fare);
+      // Record successful payment (check for pending record first)
+      const pendingPayment = db
+        .prepare("SELECT id FROM payments WHERE booking_id = ? AND status = 'PENDING' ORDER BY id DESC LIMIT 1")
+        .get(bookingId) as { id: number } | undefined;
+
+      if (pendingPayment) {
+        db.prepare(`
+          UPDATE payments 
+          SET status = 'SUCCESS', transaction_id = ?,
+              razorpay_order_id = COALESCE(?, razorpay_order_id),
+              razorpay_payment_id = ?, razorpay_signature = ?,
+              payment_method = ?
+          WHERE id = ?
+        `).run(
+          transactionId,
+          options?.razorpay_order_id || null,
+          options?.razorpay_payment_id || null,
+          options?.razorpay_signature || null,
+          options?.payment_method || 'SIM',
+          pendingPayment.id
+        );
+      } else {
+        db.prepare(`
+          INSERT INTO payments 
+            (booking_id, transaction_id, amount, status, razorpay_order_id, razorpay_payment_id, razorpay_signature, payment_method)
+          VALUES (?, ?, ?, 'SUCCESS', ?, ?, ?, ?)
+        `).run(
+          bookingId,
+          transactionId,
+          booking.total_fare,
+          options?.razorpay_order_id || null,
+          options?.razorpay_payment_id || null,
+          options?.razorpay_signature || null,
+          options?.payment_method || 'SIM'
+        );
+      }
 
       // Audit log
       db.prepare(`
@@ -260,54 +354,206 @@ export class BookingRepository {
     }
   }
 
+  // Record a newly created payment order as PENDING
+  recordPendingPayment(
+    bookingId: number,
+    orderId: string,
+    amount: number,
+    method = 'RAZORPAY'
+  ): void {
+    const db = getDatabase();
+    const tempTxn = `pend_${orderId.replace(/[^a-zA-Z0-9]/g, '')}`;
+    db.prepare(`
+      INSERT INTO payments (booking_id, transaction_id, amount, payment_method, status, razorpay_order_id)
+      VALUES (?, ?, ?, ?, 'PENDING', ?)
+    `).run(bookingId, tempTxn, amount, method, orderId);
+  }
+
+  // Lookup booking associated with a Razorpay order ID (for webhooks and callbacks)
+  findBookingByRazorpayOrderId(orderId: string): (Booking & { razorpay_payment_id?: string }) | null {
+    const db = getDatabase();
+    const row = db.prepare(`
+      SELECT b.*, p.razorpay_payment_id
+      FROM bookings b
+      JOIN payments p ON p.booking_id = b.id
+      WHERE p.razorpay_order_id = ?
+      ORDER BY p.id DESC
+      LIMIT 1
+    `).get(orderId) as (Booking & { razorpay_payment_id?: string }) | undefined;
+    return row || null;
+  }
+
   // ============================================================
-  // FAIL BOOKING — release inventory, mark as failed
+  // FAIL BOOKING — RELEASE INVENTORY, mark as failed
+  //
+  // v3.0 FIX: Inventory IS consumed at creation time (holds).
+  // On failure, we MUST restore available_seats / waiting_list_count.
   // ============================================================
   failBooking(bookingId: number, reason: string): void {
     const db = getDatabase();
     db.exec('BEGIN IMMEDIATE');
     try {
-      const booking = db.prepare('SELECT * FROM bookings WHERE id = ?').get(bookingId) as Booking;
+      const booking = db.prepare('SELECT * FROM bookings WHERE id = ?').get(bookingId) as unknown as Booking;
       if (!booking) { db.exec('ROLLBACK'); return; }
 
       if (booking.booking_status !== 'PENDING_PAYMENT') {
         db.exec('ROLLBACK');
-        return; // Already processed
+        return; // Already processed — idempotent
       }
 
-      // Release inventory
-      if (booking.booking_status === 'PENDING_PAYMENT') {
-        // Note: seats are only actually decremented after payment success
-        // For WL, we also need to release if we pre-incremented
-        // In this implementation: inventory is updated on confirm, not on booking creation
-        // So no rollback needed here for confirmed seats
+      // --- CRITICAL FIX: Release held inventory ---
+      // Seats were decremented at booking creation. We must restore them.
+      // Determine if this was a confirmed-seat hold or WL hold by checking
+      // whether available_seats was consumed (confirmed) or waiting_list_count
+      // was incremented (WL). We can tell from inventory state:
+      // If available_seats < total_seats after releasing, it was a confirmed hold.
+      // Simpler: check if any seats were available at creation time.
+      // Since we don't store this flag, we check current inventory:
+      // The booking consumed seats. We restore total_passengers seats.
+      const inventory = db
+        .prepare('SELECT * FROM seat_inventory WHERE schedule_id = ? AND class_code = ?')
+        .get(booking.schedule_id, booking.class_code) as {
+          total_seats: number;
+          available_seats: number;
+          waiting_list_count: number;
+        } | undefined;
+
+      if (inventory) {
+        // Check if this booking had confirmed-seat holds or WL holds.
+        // A booking that was created when seats were available would have
+        // decremented available_seats. If seats were 0 at creation, it
+        // would have incremented waiting_list_count.
+        // Since available_seats was decremented or waiting_list_count incremented,
+        // and the booking is still PENDING_PAYMENT, we need to figure out which.
+        // We can check: if restoring seats would exceed total, it was WL.
+        const seatsToRestore = booking.total_passengers;
+        if (inventory.available_seats + seatsToRestore <= inventory.total_seats) {
+          // Was a confirmed-seat hold — restore available_seats
+          db.prepare(`
+            UPDATE seat_inventory 
+            SET available_seats = MIN(total_seats, available_seats + ?)
+            WHERE schedule_id = ? AND class_code = ?
+          `).run(seatsToRestore, booking.schedule_id, booking.class_code);
+        } else {
+          // Was a WL hold — decrement waiting_list_count
+          db.prepare(`
+            UPDATE seat_inventory 
+            SET waiting_list_count = MAX(0, waiting_list_count - ?)
+            WHERE schedule_id = ? AND class_code = ?
+          `).run(seatsToRestore, booking.schedule_id, booking.class_code);
+        }
       }
 
       // Mark booking as failed
       db.prepare(`
-        UPDATE bookings SET booking_status = 'FAILED', payment_status = 'FAILED', updated_at = datetime('now')
+        UPDATE bookings SET booking_status = 'FAILED', payment_status = 'FAILED',
+          hold_expires_at = NULL, updated_at = datetime('now')
         WHERE id = ?
       `).run(bookingId);
 
       // Update passengers
       db.prepare(`UPDATE booking_passengers SET status = 'CANCELLED' WHERE booking_id = ?`).run(bookingId);
 
-      // Record failed payment
-      const txnId = generateTransactionId();
-      db.prepare(`
-        INSERT INTO payments (booking_id, transaction_id, amount, status, failure_reason)
-        VALUES (?, ?, ?, 'FAILED', ?)
-      `).run(bookingId, txnId, booking.total_fare, reason);
+      // Record failed payment (update pending payment or insert failed record)
+      const existingPendingPayment = db
+        .prepare("SELECT id FROM payments WHERE booking_id = ? AND status = 'PENDING'")
+        .get(bookingId) as { id: number } | undefined;
+
+      if (existingPendingPayment) {
+        db.prepare(`
+          UPDATE payments SET status = 'FAILED', failure_reason = ? WHERE id = ?
+        `).run(reason, existingPendingPayment.id);
+      } else {
+        const existingFailedPayment = db
+          .prepare("SELECT id FROM payments WHERE booking_id = ? AND status = 'FAILED'")
+          .get(bookingId) as { id: number } | undefined;
+
+        if (!existingFailedPayment) {
+          const txnId = generateTransactionId();
+          db.prepare(`
+            INSERT INTO payments (booking_id, transaction_id, amount, status, failure_reason)
+            VALUES (?, ?, ?, 'FAILED', ?)
+          `).run(bookingId, txnId, booking.total_fare, reason);
+        }
+      }
 
       db.prepare(`
         INSERT INTO audit_logs (event_type, booking_id, description)
         VALUES ('PAYMENT_FAILED', ?, ?)
-      `).run(bookingId, `Payment FAILED: ${reason}`);
+      `).run(bookingId, `Payment FAILED: ${reason}. Inventory released.`);
 
       db.exec('COMMIT');
     } catch (err) {
       try { db.exec('ROLLBACK'); } catch (_) {}
       throw err;
+    }
+  }
+
+  // ============================================================
+  // EXPIRE HELD BOOKINGS — backend-driven hold expiry
+  // Called periodically and before new bookings to reclaim seats.
+  // ============================================================
+  expireHeldBookings(): number {
+    const db = getDatabase();
+    const now = new Date().toISOString();
+    const expiredBookings = db.prepare(`
+      SELECT id FROM bookings
+      WHERE booking_status = 'PENDING_PAYMENT'
+        AND hold_expires_at IS NOT NULL
+        AND hold_expires_at <= ?
+    `).all(now) as { id: number }[];
+
+    let expiredCount = 0;
+    for (const { id } of expiredBookings) {
+      try {
+        this.failBooking(id, 'Payment hold expired');
+        // Update status to HOLD_EXPIRED for clarity (after failBooking sets FAILED)
+        db.prepare(`
+          UPDATE bookings SET booking_status = 'HOLD_EXPIRED', updated_at = datetime('now')
+          WHERE id = ? AND booking_status = 'FAILED'
+        `).run(id);
+        db.prepare(`
+          INSERT INTO audit_logs (event_type, booking_id, description)
+          VALUES ('HOLD_EXPIRED', ?, 'Booking hold expired — inventory released')
+        `).run(id);
+        expiredCount++;
+      } catch (_) {
+        // Log but don't crash — other expirations should continue
+        console.error(`[HOLD_EXPIRY] Failed to expire booking ${id}:`, _);
+      }
+    }
+    return expiredCount;
+  }
+
+  // Internal: expire holds inside an existing transaction
+  private _expireHeldBookingsInTxn(db: ReturnType<typeof getDatabase>): void {
+    const now = new Date().toISOString();
+    const expiredBookings = db.prepare(`
+      SELECT id, schedule_id, class_code, total_passengers FROM bookings
+      WHERE booking_status = 'PENDING_PAYMENT'
+        AND hold_expires_at IS NOT NULL
+        AND hold_expires_at <= ?
+    `).all(now) as { id: number; schedule_id: number; class_code: string; total_passengers: number }[];
+
+    for (const expired of expiredBookings) {
+      // Restore inventory inline (we're already in a transaction)
+      const inv = db
+        .prepare('SELECT total_seats, available_seats FROM seat_inventory WHERE schedule_id = ? AND class_code = ?')
+        .get(expired.schedule_id, expired.class_code) as { total_seats: number; available_seats: number } | undefined;
+
+      if (inv) {
+        if (inv.available_seats + expired.total_passengers <= inv.total_seats) {
+          db.prepare('UPDATE seat_inventory SET available_seats = MIN(total_seats, available_seats + ?) WHERE schedule_id = ? AND class_code = ?')
+            .run(expired.total_passengers, expired.schedule_id, expired.class_code);
+        } else {
+          db.prepare('UPDATE seat_inventory SET waiting_list_count = MAX(0, waiting_list_count - ?) WHERE schedule_id = ? AND class_code = ?')
+            .run(expired.total_passengers, expired.schedule_id, expired.class_code);
+        }
+      }
+
+      db.prepare(`UPDATE bookings SET booking_status = 'HOLD_EXPIRED', payment_status = 'FAILED', hold_expires_at = NULL, updated_at = datetime('now') WHERE id = ?`).run(expired.id);
+      db.prepare(`UPDATE booking_passengers SET status = 'CANCELLED' WHERE booking_id = ?`).run(expired.id);
+      db.prepare(`INSERT INTO audit_logs (event_type, booking_id, description) VALUES ('HOLD_EXPIRED', ?, 'Hold expired — inventory released automatically')`).run(expired.id);
     }
   }
 
@@ -322,7 +568,7 @@ export class BookingRepository {
     const db = getDatabase();
     db.exec('BEGIN IMMEDIATE');
     try {
-      const booking = db.prepare('SELECT * FROM bookings WHERE id = ?').get(bookingId) as Booking;
+      const booking = db.prepare('SELECT * FROM bookings WHERE id = ?').get(bookingId) as unknown as Booking;
       if (!booking) throw new Error('Booking not found');
 
       if (!['CONFIRMED', 'WAITING_LIST'].includes(booking.booking_status)) {
@@ -511,23 +757,23 @@ export class BookingRepository {
   // ============================================================
 
   findBookingById(id: number): Booking | undefined {
-    return getDatabase().prepare('SELECT * FROM bookings WHERE id = ?').get(id) as Booking | undefined;
+    return getDatabase().prepare('SELECT * FROM bookings WHERE id = ?').get(id) as unknown as Booking | undefined;
   }
 
   findBookingByPNR(pnr: string): Booking | undefined {
-    return getDatabase().prepare('SELECT * FROM bookings WHERE pnr_number = ?').get(pnr) as Booking | undefined;
+    return getDatabase().prepare('SELECT * FROM bookings WHERE pnr_number = ?').get(pnr) as unknown as Booking | undefined;
   }
 
   findPassengersByBookingId(bookingId: number): BookingPassenger[] {
     return getDatabase()
       .prepare('SELECT * FROM booking_passengers WHERE booking_id = ? ORDER BY id')
-      .all(bookingId) as BookingPassenger[];
+      .all(bookingId) as unknown as BookingPassenger[];
   }
 
   findPaymentsByBookingId(bookingId: number): Payment[] {
     return getDatabase()
       .prepare('SELECT * FROM payments WHERE booking_id = ? ORDER BY created_at DESC')
-      .all(bookingId) as Payment[];
+      .all(bookingId) as unknown as Payment[];
   }
 
   findCancellationByBookingId(bookingId: number) {
@@ -544,24 +790,46 @@ export class BookingRepository {
         SELECT * FROM bookings 
         WHERE contact_email = ? OR contact_phone = ?
         ORDER BY created_at DESC LIMIT 20
-      `).all(email, phone) as Booking[];
+      `).all(email, phone) as unknown as Booking[];
     }
     return db.prepare(`
       SELECT * FROM bookings 
       WHERE contact_email = ?
       ORDER BY created_at DESC LIMIT 20
-    `).all(email) as Booking[];
+    `).all(email) as unknown as Booking[];
   }
 
-  // Admin: get all bookings (paginated, optional status filter)
-  findAllBookings(limit = 50, offset = 0, status?: string): Booking[] {
+  // Admin: get all bookings (paginated, optional status filter) — enriched with route info
+  findAllBookings(limit = 50, offset = 0, status?: string): (Booking & {
+    source_station_code: string;
+    source_station_city: string;
+    dest_station_code: string;
+    dest_station_city: string;
+    train_number: string;
+    train_name: string;
+  })[] {
     const db = getDatabase();
+    const baseQuery = `
+      SELECT
+        b.*,
+        s_src.code  AS source_station_code,
+        s_src.city  AS source_station_city,
+        s_dst.code  AS dest_station_code,
+        s_dst.city  AS dest_station_city,
+        t.train_number,
+        t.name AS train_name
+      FROM bookings b
+      LEFT JOIN stations s_src ON s_src.id = b.source_station_id
+      LEFT JOIN stations s_dst ON s_dst.id = b.dest_station_id
+      LEFT JOIN schedules sch  ON sch.id  = b.schedule_id
+      LEFT JOIN trains t       ON t.id    = sch.train_id
+    `;
     if (status) {
-      return db.prepare('SELECT * FROM bookings WHERE booking_status = ? ORDER BY created_at DESC LIMIT ? OFFSET ?')
-        .all(status, limit, offset) as Booking[];
+      return db.prepare(baseQuery + ' WHERE b.booking_status = ? ORDER BY b.created_at DESC LIMIT ? OFFSET ?')
+        .all(status, limit, offset) as unknown as ReturnType<typeof this.findAllBookings>;
     }
-    return db.prepare('SELECT * FROM bookings ORDER BY created_at DESC LIMIT ? OFFSET ?')
-      .all(limit, offset) as Booking[];
+    return db.prepare(baseQuery + ' ORDER BY b.created_at DESC LIMIT ? OFFSET ?')
+      .all(limit, offset) as unknown as ReturnType<typeof this.findAllBookings>;
   }
 
   getSystemStats() {

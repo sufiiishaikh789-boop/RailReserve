@@ -1,0 +1,165 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 400" width="100%" height="100%">
+  <defs>
+    <linearGradient id="unresBg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#451a03"/>
+      <stop offset="40%" stop-color="#78350f"/>
+      <stop offset="100%" stop-color="#b45309"/>
+    </linearGradient>
+    <linearGradient id="unresSky" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#38bdf8"/>
+      <stop offset="60%" stop-color="#bae6fd"/>
+      <stop offset="100%" stop-color="#fef08a"/>
+    </linearGradient>
+    <linearGradient id="benchWood" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#92400e"/>
+      <stop offset="50%" stop-color="#78350f"/>
+      <stop offset="100%" stop-color="#451a03"/>
+    </linearGradient>
+    <linearGradient id="metalRack" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#94a3b8"/>
+      <stop offset="50%" stop-color="#cbd5e1"/>
+      <stop offset="100%" stop-color="#64748b"/>
+    </linearGradient>
+    <filter id="sunBeam" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="6" result="blur"/>
+    </filter>
+  </defs>
+
+  <!-- Coach Interior Wall (Classic warm tones) -->
+  <rect width="640" height="400" fill="url(#unresBg)"/>
+
+  <!-- Ceiling with Indian Railway Fan -->
+  <rect x="0" y="0" width="640" height="60" fill="#292524"/>
+  <!-- Ceiling Fan -->
+  <g transform="translate(320, 45)">
+    <circle cx="0" cy="0" r="14" fill="#0284c7" stroke="#38bdf8" stroke-width="2"/>
+    <!-- Spinning Blades -->
+    <ellipse cx="0" cy="-28" rx="7" ry="18" fill="#e2e8f0" opacity="0.8"/>
+    <ellipse cx="25" cy="14" rx="7" ry="18" fill="#e2e8f0" opacity="0.8" transform="rotate(60, 25, 14)"/>
+    <ellipse cx="-25" cy="14" rx="7" ry="18" fill="#e2e8f0" opacity="0.8" transform="rotate(-60, -25, 14)"/>
+    <circle cx="0" cy="0" r="5" fill="#f59e0b"/>
+  </g>
+
+  <!-- Overhead Luggage Racks (Classic Metal Slats) -->
+  <rect x="40" y="62" width="560" height="12" rx="3" fill="url(#metalRack)"/>
+  <line x1="80" y1="62" x2="80" y2="74" stroke="#475569" stroke-width="3"/>
+  <line x1="160" y1="62" x2="160" y2="74" stroke="#475569" stroke-width="3"/>
+  <line x1="240" y1="62" x2="240" y2="74" stroke="#475569" stroke-width="3"/>
+  <line x1="320" y1="62" x2="320" y2="74" stroke="#475569" stroke-width="3"/>
+  <line x1="400" y1="62" x2="400" y2="74" stroke="#475569" stroke-width="3"/>
+  <line x1="480" y1="62" x2="480" y2="74" stroke="#475569" stroke-width="3"/>
+  <line x1="560" y1="62" x2="560" y2="74" stroke="#475569" stroke-width="3"/>
+
+  <!-- Luggage on rack: duffel bags & trunk -->
+  <rect x="90" y="42" width="85" height="22" rx="6" fill="#dc2626"/>
+  <rect x="190" y="38" width="110" height="26" rx="4" fill="#0284c7" stroke="#38bdf8" stroke-width="1.5"/>
+  <rect x="430" y="40" width="90" height="24" rx="5" fill="#16a34a"/>
+
+  <!-- Large Open Windows with Security Bars -->
+  <!-- Window 1 -->
+  <g>
+    <rect x="50" y="85" width="245" height="155" rx="12" fill="#0c0a09" stroke="#78350f" stroke-width="6"/>
+    <rect x="56" y="91" width="233" height="143" rx="8" fill="url(#unresSky)"/>
+    <!-- Scenic Countryside: lush green fields & palm trees -->
+    <path d="M 56 185 Q 120 150 180 185 T 289 180 L 289 234 L 56 234 Z" fill="#22c55e"/>
+    <path d="M 90 195 Q 160 165 230 195 L 289 200 L 289 234 L 90 234 Z" fill="#15803d"/>
+    <!-- Palm tree silhouette -->
+    <path d="M 230 200 Q 232 160 235 140" stroke="#78350f" stroke-width="3" fill="none"/>
+    <path d="M 235 140 Q 220 130 215 135 M 235 140 Q 240 125 245 130 M 235 140 Q 255 135 258 142" stroke="#16a34a" stroke-width="2.5" fill="none"/>
+    
+    <!-- Classical Window Vertical Bars -->
+    <line x1="95" y1="91" x2="95" y2="234" stroke="#cbd5e1" stroke-width="3" opacity="0.85"/>
+    <line x1="135" y1="91" x2="135" y2="234" stroke="#cbd5e1" stroke-width="3" opacity="0.85"/>
+    <line x1="175" y1="91" x2="175" y2="234" stroke="#cbd5e1" stroke-width="3" opacity="0.85"/>
+    <line x1="215" y1="91" x2="215" y2="234" stroke="#cbd5e1" stroke-width="3" opacity="0.85"/>
+    <line x1="255" y1="91" x2="255" y2="234" stroke="#cbd5e1" stroke-width="3" opacity="0.85"/>
+    <!-- Window sill -->
+    <rect x="44" y="235" width="257" height="10" rx="3" fill="#a8a29e"/>
+  </g>
+
+  <!-- Window 2 -->
+  <g>
+    <rect x="345" y="85" width="245" height="155" rx="12" fill="#0c0a09" stroke="#78350f" stroke-width="6"/>
+    <rect x="351" y="91" width="233" height="143" rx="8" fill="url(#unresSky)"/>
+    <!-- Scenery -->
+    <path d="M 351 180 Q 420 145 490 180 T 584 175 L 584 234 L 351 234 Z" fill="#22c55e"/>
+    <path d="M 390 190 Q 460 160 530 190 L 584 195 L 584 234 L 390 234 Z" fill="#15803d"/>
+    <!-- Window Vertical Bars -->
+    <line x1="390" y1="91" x2="390" y2="234" stroke="#cbd5e1" stroke-width="3" opacity="0.85"/>
+    <line x1="430" y1="91" x2="430" y2="234" stroke="#cbd5e1" stroke-width="3" opacity="0.85"/>
+    <line x1="470" y1="91" x2="470" y2="234" stroke="#cbd5e1" stroke-width="3" opacity="0.85"/>
+    <line x1="510" y1="91" x2="510" y2="234" stroke="#cbd5e1" stroke-width="3" opacity="0.85"/>
+    <line x1="550" y1="91" x2="550" y2="234" stroke="#cbd5e1" stroke-width="3" opacity="0.85"/>
+    <rect x="339" y="235" width="257" height="10" rx="3" fill="#a8a29e"/>
+  </g>
+
+  <!-- Sun Rays Streaming In -->
+  <polygon points="120,91 220,91 320,320 180,320" fill="#fef08a" opacity="0.12" filter="url(#sunBeam)"/>
+  <polygon points="420,91 520,91 600,320 480,320" fill="#fef08a" opacity="0.12" filter="url(#sunBeam)"/>
+
+  <!-- Floor -->
+  <rect x="0" y="305" width="640" height="95" fill="#1c1917"/>
+
+  <!-- General Class Passengers & Benches -->
+  <!-- Left Side Bench & Commuters -->
+  <g>
+    <!-- Wooden Slat Backrest -->
+    <rect x="40" y="195" width="130" height="85" rx="8" fill="url(#benchWood)"/>
+    <line x1="40" y1="210" x2="170" y2="210" stroke="#f59e0b" stroke-width="1.5" opacity="0.4"/>
+    <line x1="40" y1="230" x2="170" y2="230" stroke="#f59e0b" stroke-width="1.5" opacity="0.4"/>
+    <line x1="40" y1="250" x2="170" y2="250" stroke="#f59e0b" stroke-width="1.5" opacity="0.4"/>
+    <line x1="40" y1="270" x2="170" y2="270" stroke="#f59e0b" stroke-width="1.5" opacity="0.4"/>
+
+    <!-- Passenger 1 (Looking out of window, cheerful traveller) -->
+    <circle cx="85" cy="180" r="16" fill="#fed7aa"/>
+    <path d="M 72 175 C 75 162, 98 162, 100 175 Z" fill="#1c1917"/>
+    <path d="M 68 200 C 68 190, 108 190, 108 200 L 115 285 L 60 285 Z" fill="#e11d48"/>
+
+    <!-- Passenger 2 (Student with backpack) -->
+    <circle cx="140" cy="185" r="15" fill="#fef08a"/>
+    <path d="M 128 180 C 130 170, 152 170, 154 180 Z" fill="#451a03"/>
+    <path d="M 122 205 C 122 195, 158 195, 158 205 L 165 285 L 115 285 Z" fill="#2563eb"/>
+
+    <!-- Wooden Slat Bench Seat Base -->
+    <rect x="30" y="278" width="160" height="40" rx="8" fill="url(#benchWood)"/>
+    <rect x="35" y="318" width="12" height="40" fill="#44403c"/>
+    <rect x="170" y="318" width="12" height="40" fill="#44403c"/>
+  </g>
+
+  <!-- Right Side Bench & Passengers -->
+  <g>
+    <!-- Wooden Slat Backrest -->
+    <rect x="470" y="195" width="130" height="85" rx="8" fill="url(#benchWood)"/>
+    <line x1="470" y1="210" x2="600" y2="210" stroke="#f59e0b" stroke-width="1.5" opacity="0.4"/>
+    <line x1="470" y1="230" x2="600" y2="230" stroke="#f59e0b" stroke-width="1.5" opacity="0.4"/>
+    <line x1="470" y1="250" x2="600" y2="250" stroke="#f59e0b" stroke-width="1.5" opacity="0.4"/>
+    <line x1="470" y1="270" x2="600" y2="270" stroke="#f59e0b" stroke-width="1.5" opacity="0.4"/>
+
+    <!-- Passenger 3 (Family / Traveller) -->
+    <circle cx="500" cy="185" r="15" fill="#fbcfe8"/>
+    <path d="M 488 180 C 490 168, 512 168, 514 180 Z" fill="#0f172a"/>
+    <path d="M 482 205 C 482 195, 518 195, 518 205 L 525 285 L 475 285 Z" fill="#16a34a"/>
+
+    <!-- Passenger 4 -->
+    <circle cx="555" cy="180" r="16" fill="#fde047"/>
+    <path d="M 542 175 C 545 162, 568 162, 570 175 Z" fill="#7f1d1d"/>
+    <path d="M 538 200 C 538 190, 578 190, 578 200 L 585 285 L 530 285 Z" fill="#ea580c"/>
+
+    <!-- Bench Seat Base -->
+    <rect x="450" y="278" width="160" height="40" rx="8" fill="url(#benchWood)"/>
+    <rect x="460" y="318" width="12" height="40" fill="#44403c"/>
+    <rect x="590" y="318" width="12" height="40" fill="#44403c"/>
+  </g>
+
+  <!-- Chai Wallah / Classic Steel Thermos on floor -->
+  <rect x="290" y="280" width="35" height="45" rx="6" fill="#cbd5e1" stroke="#64748b" stroke-width="2"/>
+  <rect x="298" y="272" width="19" height="10" rx="2" fill="#ef4444"/>
+
+  <!-- Unreserved Category Badge -->
+  <g opacity="0.95">
+    <rect x="215" y="340" width="210" height="36" rx="18" fill="#1c1917" fill-opacity="0.9" stroke="#eab308" stroke-width="1.5"/>
+    <circle cx="235" cy="358" r="6" fill="#eab308"/>
+    <text x="250" y="363" font-family="system-ui, -apple-system, sans-serif" font-size="13" font-weight="800" fill="#ffffff" letter-spacing="0.5">GENERAL &amp; UTS SECOND CLASS</text>
+  </g>
+</svg>
+

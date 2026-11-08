@@ -140,13 +140,14 @@ CREATE TABLE IF NOT EXISTS bookings (
     booking_status    TEXT    NOT NULL DEFAULT 'PENDING_PAYMENT'
                       CHECK(booking_status IN (
                         'PENDING_PAYMENT','CONFIRMED','WAITING_LIST',
-                        'FAILED','CANCELLED'
+                        'FAILED','CANCELLED','HOLD_EXPIRED'
                       )),
     payment_status    TEXT    NOT NULL DEFAULT 'PENDING'
                       CHECK(payment_status IN ('PENDING','PAID','FAILED','REFUNDED')),
     contact_email     TEXT    NOT NULL,
     contact_phone     TEXT    NOT NULL,
     idempotency_key   TEXT    NOT NULL UNIQUE,
+    hold_expires_at   TEXT,                 -- ISO timestamp UTC (10-minute hold window)
     created_at        TEXT    NOT NULL DEFAULT (datetime('now')),
     updated_at        TEXT    NOT NULL DEFAULT (datetime('now'))
 );
@@ -175,16 +176,19 @@ CREATE INDEX IF NOT EXISTS idx_bp_booking ON booking_passengers(booking_id);
 -- PAYMENTS (immutable payment attempt log)
 -- ============================================================
 CREATE TABLE IF NOT EXISTS payments (
-    id             INTEGER PRIMARY KEY AUTOINCREMENT,
-    booking_id     INTEGER NOT NULL REFERENCES bookings(id),
-    transaction_id TEXT    NOT NULL UNIQUE,
-    amount         REAL    NOT NULL CHECK(amount > 0),
-    payment_method TEXT    NOT NULL DEFAULT 'SIM'
-                   CHECK(payment_method IN ('SIM','CARD','UPI')),
-    status         TEXT    NOT NULL
-                   CHECK(status IN ('PENDING','SUCCESS','FAILED','REFUNDED')),
-    failure_reason TEXT,
-    created_at     TEXT    NOT NULL DEFAULT (datetime('now'))
+    id                   INTEGER PRIMARY KEY AUTOINCREMENT,
+    booking_id           INTEGER NOT NULL REFERENCES bookings(id),
+    transaction_id       TEXT    NOT NULL UNIQUE,
+    amount               REAL    NOT NULL CHECK(amount > 0),
+    payment_method       TEXT    NOT NULL DEFAULT 'SIM'
+                         CHECK(payment_method IN ('SIM','CARD','UPI','NETBANKING','WALLET','RAZORPAY')),
+    status               TEXT    NOT NULL
+                         CHECK(status IN ('PENDING','SUCCESS','FAILED','REFUNDED')),
+    failure_reason       TEXT,
+    razorpay_order_id    TEXT,             -- Gateway order linkage
+    razorpay_payment_id  TEXT,             -- Gateway payment confirmation ID
+    razorpay_signature   TEXT,             -- HMAC-SHA256 signature
+    created_at           TEXT    NOT NULL DEFAULT (datetime('now'))
 );
 
 -- ============================================================
@@ -247,6 +251,93 @@ CREATE TABLE IF NOT EXISTS admin_users (
                   CHECK(role IN ('ADMIN','SUPERADMIN')),
     created_at    TEXT    NOT NULL DEFAULT (datetime('now'))
 );
+
+-- ============================================================
+-- PASSENGER ACCOUNTS & NOTIFICATIONS (v3.0 Migration)
+-- ============================================================
+CREATE TABLE IF NOT EXISTS passenger_users (
+    id            INTEGER PRIMARY KEY AUTOINCREMENT,
+    full_name     TEXT    NOT NULL,
+    email         TEXT    NOT NULL UNIQUE,
+    phone         TEXT    NOT NULL,
+    password_hash TEXT    NOT NULL,
+    is_active     INTEGER NOT NULL DEFAULT 1,
+    created_at    TEXT    NOT NULL DEFAULT (datetime('now')),
+    updated_at    TEXT    NOT NULL DEFAULT (datetime('now'))
+);
+
+CREATE TABLE IF NOT EXISTS saved_passengers (
+    id               INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id          INTEGER NOT NULL REFERENCES passenger_users(id) ON DELETE CASCADE,
+    passenger_name   TEXT    NOT NULL,
+    age              INTEGER NOT NULL CHECK(age >= 1 AND age <= 120),
+    gender           TEXT    NOT NULL CHECK(gender IN ('M','F','O')),
+    berth_preference TEXT    NOT NULL DEFAULT 'ANY' CHECK(berth_preference IN ('LB','MB','UB','SL','SU','ANY')),
+    created_at       TEXT    NOT NULL DEFAULT (datetime('now'))
+);
+
+CREATE TABLE IF NOT EXISTS booking_ownership (
+    id         INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id    INTEGER NOT NULL REFERENCES passenger_users(id) ON DELETE CASCADE,
+    booking_id INTEGER NOT NULL REFERENCES bookings(id) ON DELETE CASCADE,
+    created_at TEXT    NOT NULL DEFAULT (datetime('now')),
+    UNIQUE(user_id, booking_id)
+);
+
+CREATE TABLE IF NOT EXISTS notifications (
+    id         INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id    INTEGER NOT NULL REFERENCES passenger_users(id) ON DELETE CASCADE,
+    type       TEXT    NOT NULL,
+    title      TEXT    NOT NULL,
+    message    TEXT    NOT NULL,
+    booking_id INTEGER REFERENCES bookings(id) ON DELETE SET NULL,
+    is_read    INTEGER NOT NULL DEFAULT 0,
+    created_at TEXT    NOT NULL DEFAULT (datetime('now'))
+);
+
+-- ============================================================
+-- MIGRATION 002: UNRESERVED (UTS) & PLATFORM TICKETS
+-- ============================================================
+CREATE TABLE IF NOT EXISTS unreserved_tickets (
+    id              INTEGER PRIMARY KEY AUTOINCREMENT,
+    ticket_number   TEXT    NOT NULL UNIQUE,
+    user_id         INTEGER REFERENCES passenger_users(id) ON DELETE SET NULL,
+    source_station_id INTEGER NOT NULL REFERENCES stations(id),
+    dest_station_id   INTEGER NOT NULL REFERENCES stations(id),
+    train_type      TEXT    NOT NULL CHECK(train_type IN ('ORDINARY','MAIL_EXPRESS','SUPERFAST')),
+    distance_km     INTEGER NOT NULL CHECK(distance_km > 0),
+    passenger_count INTEGER NOT NULL CHECK(passenger_count BETWEEN 1 AND 6),
+    passenger_names TEXT    NOT NULL,
+    total_fare      REAL    NOT NULL CHECK(total_fare >= 0),
+    contact_email   TEXT,
+    contact_phone   TEXT,
+    journey_date    TEXT    NOT NULL,
+    valid_until     TEXT    NOT NULL,
+    booking_status  TEXT    NOT NULL DEFAULT 'CONFIRMED' CHECK(booking_status IN ('CONFIRMED','EXPIRED','CANCELLED')),
+    qr_code         TEXT,
+    created_at      TEXT    NOT NULL DEFAULT (datetime('now'))
+);
+CREATE INDEX IF NOT EXISTS idx_uts_ticket_no ON unreserved_tickets(ticket_number);
+CREATE INDEX IF NOT EXISTS idx_uts_user_id ON unreserved_tickets(user_id);
+
+CREATE TABLE IF NOT EXISTS platform_tickets (
+    id              INTEGER PRIMARY KEY AUTOINCREMENT,
+    ticket_number   TEXT    NOT NULL UNIQUE,
+    user_id         INTEGER REFERENCES passenger_users(id) ON DELETE SET NULL,
+    station_id      INTEGER NOT NULL REFERENCES stations(id),
+    ticket_count    INTEGER NOT NULL CHECK(ticket_count BETWEEN 1 AND 10),
+    visitor_name    TEXT    NOT NULL,
+    contact_phone   TEXT    NOT NULL,
+    fare_per_ticket REAL    NOT NULL DEFAULT 10.0,
+    total_fare      REAL    NOT NULL CHECK(total_fare >= 0),
+    valid_from      TEXT    NOT NULL,
+    valid_until     TEXT    NOT NULL,
+    booking_status  TEXT    NOT NULL DEFAULT 'CONFIRMED' CHECK(booking_status IN ('CONFIRMED','EXPIRED')),
+    qr_code         TEXT,
+    created_at      TEXT    NOT NULL DEFAULT (datetime('now'))
+);
+CREATE INDEX IF NOT EXISTS idx_plt_ticket_no ON platform_tickets(ticket_number);
+CREATE INDEX IF NOT EXISTS idx_plt_user_id ON platform_tickets(user_id);
 ```
 
 ---

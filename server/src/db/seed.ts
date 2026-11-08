@@ -137,12 +137,12 @@ for (const [code, name, city, state, region, aliases] of stationData) {
 console.log(`   ✓ ${stationData.length} stations inserted`);
 
 // ============================================================
-// TRAINS — 22 fictional demonstration trains
+// TRAINS — 42 fictional demonstration trains (v3.0 expanded)
 // ============================================================
 const trainInsert = db.prepare('INSERT INTO trains (train_number, name, type) VALUES (?, ?, ?)');
 type TrainRow = [string, string, string];
 const trainData: TrainRow[] = [
-  // South India corridor
+  // --- South India corridor (original D0001–D0022) ---
   ['D0001', 'Demo Rajdhani Superfast Express',      'SUPERFAST'],  // SBC→NDLS
   ['D0002', 'Demo Shatabdi Chair Car Express',      'SUPERFAST'],  // SBC→MAS
   ['D0003', 'Demo Intercity Express',               'EXPRESS'],    // SBC→CBE via MYS
@@ -165,6 +165,32 @@ const trainData: TrainRow[] = [
   ['D0020', 'Demo Tirupati Express',                'EXPRESS'],    // MAS→TPTY
   ['D0021', 'Demo Mangaluru Mail',                  'MAIL'],       // MAS→MGR
   ['D0022', 'Demo Pune-Bengaluru Express',          'EXPRESS'],    // PUNE→SBC via SUR,GTL
+
+  // --- North India & East India (D0023–D0030) ---
+  ['D0023', 'Demo Delhi-Howrah Rajdhani',           'SUPERFAST'],  // NDLS→HWH (overnight premium)
+  ['D0024', 'Demo Lucknow Mail',                    'MAIL'],       // NDLS→LKO overnight mail
+  ['D0025', 'Demo Patna Express',                   'EXPRESS'],    // NDLS→PNBE via CNB
+  ['D0026', 'Demo Bhopal Shatabdi',                 'SUPERFAST'],  // NDLS→BPL (morning SF)
+  ['D0027', 'Demo Howrah-Chennai Mail',             'MAIL'],       // HWH→MAS via BBS,VSKP
+  ['D0028', 'Demo Puri-Ajmer Express',              'EXPRESS'],    // HWH→PNBE→CNB (cross-country)
+  ['D0029', 'Demo Guwahati Express',                'EXPRESS'],    // HWH→PNBE (East Express)
+  ['D0030', 'Demo Doon Express',                    'EXPRESS'],    // NDLS→LKO→CNB daytime
+
+  // --- West India corridor (D0031–D0036) ---
+  ['D0031', 'Demo Mumbai-Ahmedabad SF',             'SUPERFAST'],  // CSTM→ADI
+  ['D0032', 'Demo Gujarat Express',                 'EXPRESS'],    // CSTM→ADI→STV
+  ['D0033', 'Demo Konkan Superfast',                'SUPERFAST'],  // CSTM→MAO (fast)
+  ['D0034', 'Demo Jaipur Express',                  'EXPRESS'],    // NDLS→JP overnight
+  ['D0035', 'Demo Rajputana Mail',                  'MAIL'],       // NDLS→ADI via JP,STV
+  ['D0036', 'Demo Pune-Nagpur Express',             'EXPRESS'],    // PUNE→NGP overnight
+
+  // --- More South India routes (D0037–D0042) ---
+  ['D0037', 'Demo Bengaluru-Pune Intercity',        'EXPRESS'],    // SBC→PUNE daytime
+  ['D0038', 'Demo Chennai-Coimbatore Nilgiri',      'SUPERFAST'],  // MAS→CBE via SA,ED
+  ['D0039', 'Demo Nagercoil Express',               'EXPRESS'],    // MAS→TEN via MDU
+  ['D0040', 'Demo Bengaluru-Mangaluru Express',     'EXPRESS'],    // SBC→MAJN→MGR
+  ['D0041', 'Demo Hyderabad-Bengaluru Express',     'EXPRESS'],    // SC→SBC overnight
+  ['D0042', 'Demo Vasco-Bengaluru Express',         'EXPRESS'],    // MAO→SBC via PUNE,SUR
 ];
 
 const trainIds: Record<string, number> = {};
@@ -419,6 +445,165 @@ addStops('D0022', [
 console.log('   ✓ Train routes inserted');
 
 // ============================================================
+// NEW ROUTES D0023–D0042 (v3.0 expansion)
+// ============================================================
+
+// D0023: NDLS → CNB → BPL → NGP → BBS → VSKP → HWH (Delhi-Howrah Rajdhani)
+addStops('D0023', [
+  ['NDLS', null,    '17:00', 0,    0],
+  ['CNB',  '22:30', '22:40', 0,  447],
+  ['BPL',  '04:00', '04:10', 1,  832],
+  ['NGP',  '11:00', '11:15', 1, 1169],
+  ['BBS',  '21:30', '21:40', 1, 1611],
+  ['HWH',  '09:30', null,    2, 1534],
+]);
+
+// D0024: NDLS → CNB → LKO (Lucknow Mail)
+addStops('D0024', [
+  ['NDLS', null,    '22:30', 0,   0],
+  ['CNB',  '05:00', '05:10', 1, 447],
+  ['LKO',  '07:00', null,    1, 524],
+]);
+
+// D0025: NDLS → CNB → LKO → PNBE (Patna Express)
+addStops('D0025', [
+  ['NDLS', null,    '21:00', 0,   0],
+  ['CNB',  '03:00', '03:10', 1, 447],
+  ['LKO',  '05:00', '05:10', 1, 524],
+  ['PNBE', '12:30', null,    1, 991],
+]);
+
+// D0026: NDLS → BPL (Bhopal Shatabdi, morning)
+addStops('D0026', [
+  ['NDLS', null,    '06:00', 0,   0],
+  ['CNB',  '10:30', '10:35', 0, 447],
+  ['BPL',  '14:30', null,    0, 832],
+]);
+
+// D0027: HWH → BBS → VSKP → BZA → MAS (Howrah-Chennai Mail)
+addStops('D0027', [
+  ['HWH',  null,    '14:00', 0,    0],
+  ['BBS',  '21:00', '21:10', 0,  441],
+  ['VSKP', '05:00', '05:10', 1,  779],
+  ['BZA',  '11:30', '11:40', 1, 1052],
+  ['MAS',  '21:30', null,    1, 1663],
+]);
+
+// D0028: HWH → PNBE → CNB (cross-country)
+addStops('D0028', [
+  ['HWH',  null,    '10:00', 0,   0],
+  ['PNBE', '15:30', '15:40', 0, 543],
+  ['CNB',  '22:30', '22:40', 0, 1010],
+  ['LKO',  '00:30', null,    1, 1087],
+]);
+
+// D0029: HWH → PNBE (East Express, short hop)
+addStops('D0029', [
+  ['HWH',  null,    '07:00', 0,   0],
+  ['PNBE', '12:30', null,    0, 543],
+]);
+
+// D0030: NDLS → CNB → LKO (Doon daytime express)
+addStops('D0030', [
+  ['NDLS', null,    '07:30', 0,   0],
+  ['CNB',  '12:30', '12:35', 0, 447],
+  ['LKO',  '14:30', null,    0, 524],
+]);
+
+// D0031: CSTM → STV → ADI (Mumbai-Ahmedabad SF)
+addStops('D0031', [
+  ['CSTM', null,    '06:05', 0,   0],
+  ['STV',  '10:30', '10:35', 0, 263],
+  ['ADI',  '13:00', null,    0, 495],
+]);
+
+// D0032: CSTM → STV → ADI (Gujarat Express, slightly slower)
+addStops('D0032', [
+  ['CSTM', null,    '21:40', 0,   0],
+  ['STV',  '03:00', '03:10', 1, 263],
+  ['ADI',  '06:30', null,    1, 495],
+]);
+
+// D0033: CSTM → MAO (Konkan Superfast)
+addStops('D0033', [
+  ['CSTM', null,    '11:00', 0,   0],
+  ['SUR',  '15:30', '15:40', 0, 451],
+  ['MAO',  '21:30', null,    0, 593],
+]);
+
+// D0034: NDLS → JP (Jaipur Express)
+addStops('D0034', [
+  ['NDLS', null,    '18:00', 0,   0],
+  ['JP',   '22:30', null,    0, 303],
+]);
+
+// D0035: NDLS → JP → STV → ADI (Rajputana Mail)
+addStops('D0035', [
+  ['NDLS', null,    '23:30', 0,   0],
+  ['JP',   '04:00', '04:10', 1, 303],
+  ['STV',  '12:00', '12:10', 1, 782],
+  ['ADI',  '15:00', null,    1, 1014],
+]);
+
+// D0036: PUNE → NGP (Pune-Nagpur overnight)
+addStops('D0036', [
+  ['PUNE', null,    '21:30', 0,   0],
+  ['NGP',  '07:30', null,    1, 609],
+]);
+
+// D0037: SBC → DVG → SUR → PUNE (Bengaluru-Pune Intercity)
+addStops('D0037', [
+  ['SBC',  null,    '08:30', 0,   0],
+  ['DVG',  '11:30', '11:35', 0, 263],
+  ['SUR',  '17:00', '17:10', 0, 634],
+  ['PUNE', '20:30', null,    0, 795],
+]);
+
+// D0038: MAS → SA → ED → CBE (Chennai-Coimbatore Nilgiri SF)
+addStops('D0038', [
+  ['MAS',  null,    '07:10', 0,   0],
+  ['SA',   '09:30', '09:35', 0, 201],
+  ['ED',   '10:50', '10:55', 0, 275],
+  ['CBE',  '12:30', null,    0, 511],
+]);
+
+// D0039: MAS → MDU → TEN (Nagercoil Express)
+addStops('D0039', [
+  ['MAS',  null,    '19:30', 0,   0],
+  ['MS',   '19:50', '19:55', 0,   5],
+  ['MDU',  '01:00', '01:10', 1, 462],
+  ['TEN',  '03:30', null,    1, 582],
+]);
+
+// D0040: SBC → BRAR → SSPN → MAJN → MGR (Bengaluru-Mangaluru)
+addStops('D0040', [
+  ['SBC',  null,    '07:30', 0,   0],
+  ['BRAR', '09:00', '09:05', 0,  89],
+  ['SSPN', '11:00', '11:05', 0, 211],
+  ['MAJN', '14:30', '14:35', 0, 352],
+  ['MGR',  '15:30', null,    0, 390],
+]);
+
+// D0041: SC → GTL → DVG → SBC (Hyderabad-Bengaluru Express)
+addStops('D0041', [
+  ['SC',   null,    '20:00', 0,   0],
+  ['HYB',  '20:15', '20:20', 0,  10],
+  ['GTL',  '01:30', '01:35', 1, 282],
+  ['DVG',  '04:00', '04:05', 1, 378],
+  ['SBC',  '07:00', null,    1, 641],
+]);
+
+// D0042: MAO → SUR → PUNE → SBC (Vasco-Bengaluru Express)
+addStops('D0042', [
+  ['MAO',  null,    '15:00', 0,   0],
+  ['SUR',  '23:30', '23:40', 0, 142],
+  ['PUNE', '02:00', '02:15', 1, 386],
+  ['DVG',  '10:00', '10:05', 1, 782],
+  ['SBC',  '13:00', null,    1, 1045],
+]);
+
+
+// ============================================================
 // TRAIN CLASSES — fares per train
 // ============================================================
 const classInsert = db.prepare(`
@@ -535,6 +720,105 @@ const classData: ClassRow[] = [
   ['D0022', '2A',  'Second AC',            850, 54, 10],
   ['D0022', '3A',  'Third AC',             590, 72, 15],
   ['D0022', 'SL',  'Sleeper',             240, 144, 25],
+
+  // ── NEW D0023–D0042 (v3.0 expansion) ─────────────────────────
+
+  // D0023 Delhi-Howrah Rajdhani: 1A, 2A, 3A
+  ['D0023', '1A',  'First AC',            4600, 18,  5],
+  ['D0023', '2A',  'Second AC',           2700, 54, 10],
+  ['D0023', '3A',  'Third AC',            1900, 72, 15],
+
+  // D0024 Lucknow Mail: 2A, 3A, SL
+  ['D0024', '2A',  'Second AC',            680, 54, 10],
+  ['D0024', '3A',  'Third AC',             480, 72, 15],
+  ['D0024', 'SL',  'Sleeper',             195, 144, 30],
+
+  // D0025 Patna Express: 2A, 3A, SL
+  ['D0025', '2A',  'Second AC',            820, 54, 10],
+  ['D0025', '3A',  'Third AC',             580, 72, 15],
+  ['D0025', 'SL',  'Sleeper',             235, 144, 30],
+
+  // D0026 Bhopal Shatabdi: CC, 1A
+  ['D0026', 'CC',  'Chair Car',            740, 78, 20],
+  ['D0026', '1A',  'First AC',            1480, 24,  8],
+
+  // D0027 Howrah-Chennai Mail: 1A, 2A, 3A, SL
+  ['D0027', '1A',  'First AC',            3100, 18,  5],
+  ['D0027', '2A',  'Second AC',           1820, 54, 10],
+  ['D0027', '3A',  'Third AC',            1270, 72, 15],
+  ['D0027', 'SL',  'Sleeper',             465, 144, 30],
+
+  // D0028 Puri-CNB cross-country: 2A, 3A, SL
+  ['D0028', '2A',  'Second AC',            960, 54, 10],
+  ['D0028', '3A',  'Third AC',             670, 72, 15],
+  ['D0028', 'SL',  'Sleeper',             275, 144, 25],
+
+  // D0029 Howrah-Patna short hop: 2A, SL
+  ['D0029', '2A',  'Second AC',            540, 54, 10],
+  ['D0029', 'SL',  'Sleeper',             175, 144, 25],
+
+  // D0030 Doon daytime: CC, 2S
+  ['D0030', 'CC',  'Chair Car',            420, 78, 20],
+  ['D0030', '2S',  'Second Sitting',       190, 120, 30],
+
+  // D0031 Mumbai-Ahmedabad SF: CC, 1A, 2A
+  ['D0031', 'CC',  'Chair Car',            380, 78, 20],
+  ['D0031', '1A',  'First AC',             960, 24,  8],
+  ['D0031', '2A',  'Second AC',            620, 54, 10],
+
+  // D0032 Gujarat Express: 2A, 3A, SL
+  ['D0032', '2A',  'Second AC',            580, 54, 10],
+  ['D0032', '3A',  'Third AC',             405, 72, 15],
+  ['D0032', 'SL',  'Sleeper',             165, 144, 25],
+
+  // D0033 Konkan Superfast: CC, 2A, 3A
+  ['D0033', 'CC',  'Chair Car',            460, 78, 15],
+  ['D0033', '2A',  'Second AC',            720, 54, 10],
+  ['D0033', '3A',  'Third AC',             510, 72, 15],
+
+  // D0034 Jaipur Express: 2A, 3A, SL
+  ['D0034', '2A',  'Second AC',            620, 54, 10],
+  ['D0034', '3A',  'Third AC',             435, 72, 15],
+  ['D0034', 'SL',  'Sleeper',             175, 144, 25],
+
+  // D0035 Rajputana Mail: 2A, 3A, SL
+  ['D0035', '2A',  'Second AC',            980, 54, 10],
+  ['D0035', '3A',  'Third AC',             685, 72, 15],
+  ['D0035', 'SL',  'Sleeper',             280, 144, 25],
+
+  // D0036 Pune-Nagpur overnight: 2A, 3A, SL
+  ['D0036', '2A',  'Second AC',            680, 54, 10],
+  ['D0036', '3A',  'Third AC',             475, 72, 15],
+  ['D0036', 'SL',  'Sleeper',             195, 144, 25],
+
+  // D0037 Bengaluru-Pune Intercity: CC, 2A, 3A
+  ['D0037', 'CC',  'Chair Car',            460, 78, 20],
+  ['D0037', '2A',  'Second AC',            820, 54, 10],
+  ['D0037', '3A',  'Third AC',             575, 72, 15],
+
+  // D0038 Chennai-Coimbatore Nilgiri: CC, 1A
+  ['D0038', 'CC',  'Chair Car',            560, 78, 20],
+  ['D0038', '1A',  'First AC',            1120, 24,  8],
+
+  // D0039 Nagercoil Express: 2A, 3A, SL
+  ['D0039', '2A',  'Second AC',            680, 54, 10],
+  ['D0039', '3A',  'Third AC',             475, 72, 15],
+  ['D0039', 'SL',  'Sleeper',             195, 144, 25],
+
+  // D0040 Bengaluru-Mangaluru: CC, 2A, 3A
+  ['D0040', 'CC',  'Chair Car',            320, 78, 15],
+  ['D0040', '2A',  'Second AC',            620, 54, 10],
+  ['D0040', '3A',  'Third AC',             435, 72, 15],
+
+  // D0041 Hyderabad-Bengaluru: 2A, 3A, SL
+  ['D0041', '2A',  'Second AC',            680, 54, 10],
+  ['D0041', '3A',  'Third AC',             475, 72, 15],
+  ['D0041', 'SL',  'Sleeper',             195, 144, 25],
+
+  // D0042 Vasco-Bengaluru: 2A, 3A, SL
+  ['D0042', '2A',  'Second AC',            720, 54, 10],
+  ['D0042', '3A',  'Third AC',             505, 72, 15],
+  ['D0042', 'SL',  'Sleeper',             205, 144, 25],
 ];
 
 for (const [trainNum, code, name, fare, seats, wl] of classData) {
@@ -616,11 +900,20 @@ for (let day = 1; day <= 35; day++) {
 console.log(`   ✓ ${schedulesCreated} schedules created (35 days × ${trainData.length} trains)`);
 
 // ============================================================
-// ADMIN USER
+// ADMIN USER — credentials read from environment (B3 fix)
+// NEVER hardcode credentials. Use ADMIN_USERNAME / ADMIN_PASSWORD env vars.
 // ============================================================
-const adminPwd = await bcrypt.hash('PresidencyAdmin2026!', 10);
-db.prepare('INSERT OR IGNORE INTO admin_users (username, password_hash, role) VALUES (?, ?, ?)').run('admin', adminPwd, 'SUPERADMIN');
-console.log('   ✓ Admin user created: username=admin, password=PresidencyAdmin2026!');
+const adminUsername = process.env.ADMIN_USERNAME || 'admin';
+const adminPassword = process.env.ADMIN_PASSWORD;
+if (!adminPassword) {
+  console.warn('   ⚠️  ADMIN_PASSWORD env var not set — using default demo password.');
+  console.warn('   ⚠️  Set ADMIN_PASSWORD in your .env file for security!');
+}
+const resolvedAdminPassword = adminPassword || 'PresidencyAdmin2026!';
+const adminPwd = await bcrypt.hash(resolvedAdminPassword, 12);
+db.prepare('INSERT OR IGNORE INTO admin_users (username, password_hash, role) VALUES (?, ?, ?)').run(adminUsername, adminPwd, 'SUPERADMIN');
+// Never log the actual password — only confirm the username
+console.log(`   ✓ Admin user seeded: username=${adminUsername} (password set via ADMIN_PASSWORD env var)`);
 
 // ============================================================
 // DEMO BOOKING — pre-confirmed for cancellation demo
@@ -669,17 +962,17 @@ if (demoSchedule) {
 db.exec('PRAGMA wal_checkpoint(TRUNCATE);');
 db.close();
 
-console.log('\n✅ Seed v2.0 complete!');
+console.log('\n✅ Seed v3.0 complete!');
 console.log('\n📋 Dataset Summary:');
-console.log(`   Stations : ${stationData.length} (Karnataka, TN, Kerala, AP/TS, MH, North India)`);
-console.log(`   Trains   : ${trainData.length} (SUPERFAST, EXPRESS, PASSENGER, MAIL)`);
+console.log(`   Stations : ${stationData.length} (Karnataka, TN, Kerala, AP/TS, MH, Goa, North, East, West India)`);
+console.log(`   Trains   : ${trainData.length} (SUPERFAST, EXPRESS, PASSENGER, MAIL — D0001–D0042)`);
 console.log(`   Classes  : ${classData.length} records (1A, 2A, 3A, SL, CC, 2S)`);
 console.log(`   Schedules: ${schedulesCreated} (35 days × ${trainData.length} trains)`);
-console.log('\n📋 Demo Scenarios:');
-console.log('   1. D0002 SBC→MAS: Chair Car + 1A available — standard booking');
-console.log('   2. D0005 SBC→TK: 2S only — always in WL for WL demo');
-console.log('   3. D0006 SBC→HYB: 3-class overnight express');
-console.log('   4. D0007 MAS→TVC: Overnight 11-stop Kerala journey');
-console.log('   5. D0001 SBC→NDLS: Long-distance Rajdhani 13 stops');
+console.log('\n📋 Key Demo Scenarios:');
+console.log('   1. D0002 SBC→MAS: Chair Car + 1A — standard booking flow');
+console.log('   2. D0005 SBC→TK:  2S only — always WL (waiting-list demo)');
+console.log('   3. D0023 NDLS→HWH: Rajdhani — premium long-distance');
+console.log('   4. D0038 MAS→CBE: Nilgiri SF — Tamil Nadu daytime');
+console.log('   5. D0041 SC→SBC:  Hyderabad-Bengaluru overnight');
 console.log('   6. PNR-DEMO01: Pre-confirmed SBC→MAS for cancellation demo');
-console.log('\n🔑 Admin: username=admin | password=PresidencyAdmin2026!');
+console.log(`\n🔑 Admin: username=${adminUsername} (check your ADMIN_PASSWORD env var)`);

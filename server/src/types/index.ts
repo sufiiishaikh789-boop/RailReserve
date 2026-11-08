@@ -60,6 +60,7 @@ export interface SeatInventory {
 
 export interface Booking {
   id: number;
+  user_id?: number | null;
   pnr_number: string;
   schedule_id: number;
   source_station_id: number;
@@ -73,6 +74,7 @@ export interface Booking {
   contact_email: string;
   contact_phone: string;
   idempotency_key: string;
+  hold_expires_at?: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -97,6 +99,9 @@ export interface Payment {
   payment_method: PaymentMethod;
   status: PaymentTxnStatus;
   failure_reason: string | null;
+  razorpay_order_id?: string | null;
+  razorpay_payment_id?: string | null;
+  razorpay_signature?: string | null;
   created_at: string;
 }
 
@@ -151,7 +156,9 @@ export type BookingStatus =
   | 'CONFIRMED'
   | 'WAITING_LIST'
   | 'FAILED'
-  | 'CANCELLED';
+  | 'CANCELLED'
+  | 'HOLD_EXPIRED'
+  | 'PAYMENT_CANCELLED';
 
 export type PaymentStatus = 'PENDING' | 'PAID' | 'FAILED' | 'REFUNDED';
 
@@ -297,6 +304,7 @@ export interface ETicket {
   contact_phone: string;
   booked_at: string;
   disclaimer: string;
+  qr_code?: string;
 }
 
 

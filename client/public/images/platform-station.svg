@@ -1,0 +1,150 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 400" width="100%" height="100%">
+  <defs>
+    <linearGradient id="platSky" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#0284c7"/>
+      <stop offset="50%" stop-color="#38bdf8"/>
+      <stop offset="100%" stop-color="#bae6fd"/>
+    </linearGradient>
+    <linearGradient id="trainBody" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#1e3a8a"/>
+      <stop offset="40%" stop-color="#1d4ed8"/>
+      <stop offset="70%" stop-color="#f97316"/>
+      <stop offset="100%" stop-color="#ea580c"/>
+    </linearGradient>
+    <linearGradient id="roofGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#334155"/>
+      <stop offset="50%" stop-color="#475569"/>
+      <stop offset="100%" stop-color="#1e293b"/>
+    </linearGradient>
+    <linearGradient id="platFloor" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#cbd5e1"/>
+      <stop offset="40%" stop-color="#94a3b8"/>
+      <stop offset="100%" stop-color="#64748b"/>
+    </linearGradient>
+    <filter id="headlightGlow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="10" result="blur"/>
+      <feComposite in="SourceGraphic" in2="blur" operator="over"/>
+    </filter>
+  </defs>
+
+  <!-- Open Sky & Background -->
+  <rect width="640" height="400" fill="url(#platSky)"/>
+
+  <!-- High Arched Railway Station Canopy Truss Structure -->
+  <path d="M 0 0 L 640 0 L 640 120 Q 320 60 0 120 Z" fill="url(#roofGrad)"/>
+  <!-- Steel Truss Girders -->
+  <line x1="80" y1="20" x2="140" y2="110" stroke="#64748b" stroke-width="4"/>
+  <line x1="140" y1="20" x2="80" y2="110" stroke="#64748b" stroke-width="4"/>
+  <line x1="240" y1="20" x2="300" y2="100" stroke="#64748b" stroke-width="4"/>
+  <line x1="300" y1="20" x2="240" y2="100" stroke="#64748b" stroke-width="4"/>
+  <line x1="400" y1="20" x2="460" y2="105" stroke="#64748b" stroke-width="4"/>
+  <line x1="460" y1="20" x2="400" y2="105" stroke="#64748b" stroke-width="4"/>
+  <line x1="540" y1="20" x2="600" y2="115" stroke="#64748b" stroke-width="4"/>
+  <line x1="600" y1="20" x2="540" y2="115" stroke="#64748b" stroke-width="4"/>
+
+  <!-- Station Platform Pillar -->
+  <rect x="220" y="80" width="22" height="250" fill="#475569" stroke="#1e293b" stroke-width="2"/>
+  <rect x="214" y="320" width="34" height="20" rx="4" fill="#334155"/>
+
+  <!-- Digital Platform Display Board & Clock -->
+  <g transform="translate(180, 85)">
+    <!-- Hanging Chains -->
+    <line x1="15" y1="0" x2="15" y2="20" stroke="#334155" stroke-width="3"/>
+    <line x1="85" y1="0" x2="85" y2="20" stroke="#334155" stroke-width="3"/>
+    <!-- Board -->
+    <rect x="0" y="20" width="100" height="42" rx="6" fill="#0f172a" stroke="#f97316" stroke-width="2"/>
+    <text x="50" y="38" font-family="system-ui, sans-serif" font-size="11" font-weight="900" fill="#facc15" text-anchor="middle" letter-spacing="1">PLATFORM 1</text>
+    <text x="50" y="52" font-family="monospace" font-size="10" font-weight="bold" fill="#38bdf8" text-anchor="middle">10:45 AM</text>
+  </g>
+
+  <!-- High-Speed / Modern Passenger Train Halted at Track (Left Side) -->
+  <!-- Track Balast & Rails -->
+  <rect x="0" y="280" width="240" height="120" fill="#1e293b"/>
+  <line x1="0" y1="290" x2="240" y2="290" stroke="#94a3b8" stroke-width="5"/>
+  <line x1="0" y1="315" x2="240" y2="315" stroke="#94a3b8" stroke-width="5"/>
+  <!-- Track Sleepers -->
+  <g stroke="#475569" stroke-width="4">
+    <line x1="20" y1="285" x2="20" y2="325"/>
+    <line x1="60" y1="285" x2="60" y2="325"/>
+    <line x1="100" y1="285" x2="100" y2="325"/>
+    <line x1="140" y1="285" x2="140" y2="325"/>
+    <line x1="180" y1="285" x2="180" y2="325"/>
+    <line x1="220" y1="285" x2="220" y2="325"/>
+  </g>
+
+  <!-- Locomotive / Train Front Profile -->
+  <g>
+    <!-- Aerodynamic Coach Profile -->
+    <path d="M 0 110 L 160 110 Q 210 115 220 180 L 225 290 L 0 290 Z" fill="url(#trainBody)"/>
+    <!-- Driver Windshield -->
+    <path d="M 140 125 L 180 125 Q 195 130 200 160 L 140 160 Z" fill="#0f172a" stroke="#38bdf8" stroke-width="1.5"/>
+    <!-- Coach Passenger Windows with interior glow -->
+    <rect x="20" y="145" width="45" height="30" rx="6" fill="#fef08a" stroke="#0f172a" stroke-width="2"/>
+    <rect x="80" y="145" width="45" height="30" rx="6" fill="#fef08a" stroke="#0f172a" stroke-width="2"/>
+    <!-- Headlight Beam -->
+    <circle cx="215" cy="225" r="10" fill="#ffffff" filter="url(#headlightGlow)"/>
+    <circle cx="215" cy="225" r="5" fill="#fef08a"/>
+    <polygon points="225,220 380,180 400,290 225,235" fill="#fef08a" opacity="0.18" filter="url(#headlightGlow)"/>
+    <!-- Train Lower Skirt & Wheels -->
+    <rect x="0" y="275" width="225" height="15" fill="#0f172a"/>
+    <circle cx="60" cy="285" r="12" fill="#475569" stroke="#94a3b8" stroke-width="2"/>
+    <circle cx="120" cy="285" r="12" fill="#475569" stroke="#94a3b8" stroke-width="2"/>
+    <circle cx="180" cy="285" r="12" fill="#475569" stroke="#94a3b8" stroke-width="2"/>
+  </g>
+
+  <!-- Platform Surface (Right side & foreground) -->
+  <path d="M 230 220 L 640 220 L 640 400 L 210 400 Z" fill="url(#platFloor)"/>
+  <!-- Safety Yellow Tactile Line on Platform Edge -->
+  <line x1="230" y1="225" x2="210" y2="400" stroke="#facc15" stroke-width="8" stroke-dasharray="12,6"/>
+
+  <!-- Station Signboard: BENGALURU CITY (DEMO) -->
+  <g transform="translate(360, 130)">
+    <rect x="0" y="0" width="220" height="48" rx="8" fill="#f8fafc" stroke="#1e3a8a" stroke-width="4"/>
+    <rect x="0" y="0" width="220" height="12" rx="4" fill="#1e3a8a"/>
+    <text x="110" y="34" font-family="system-ui, -apple-system, sans-serif" font-size="14" font-weight="900" fill="#1e3a8a" text-anchor="middle" letter-spacing="1">RAILRESERVE JUNCTION</text>
+  </g>
+
+  <!-- Platform Passengers & Visitors -->
+  <!-- Visitor 1 (Family waving / receiving relatives with flowers) -->
+  <g>
+    <circle cx="380" cy="235" r="13" fill="#fed7aa"/>
+    <path d="M 370 230 C 372 220, 390 220, 392 230 Z" fill="#1e293b"/>
+    <path d="M 368 250 C 368 240, 395 240, 395 250 L 398 320 L 365 320 Z" fill="#0284c7"/>
+    <!-- Trolley Bag -->
+    <rect x="345" y="275" width="20" height="36" rx="4" fill="#dc2626"/>
+    <line x1="355" y1="275" x2="355" y2="255" stroke="#475569" stroke-width="2"/>
+    <circle cx="349" cy="312" r="3" fill="#0f172a"/>
+    <circle cx="361" cy="312" r="3" fill="#0f172a"/>
+  </g>
+
+  <!-- Visitor 2 (Parent with child on platform) -->
+  <g>
+    <!-- Parent -->
+    <circle cx="450" cy="230" r="14" fill="#fcd34d"/>
+    <path d="M 438 225 C 440 215, 464 215, 466 225 Z" fill="#831843"/>
+    <path d="M 435 248 C 435 238, 468 238, 468 248 L 472 325 L 430 325 Z" fill="#059669"/>
+    <!-- Child holding hand -->
+    <circle cx="495" cy="270" r="10" fill="#fef08a"/>
+    <path d="M 488 265 C 490 258, 502 258, 504 265 Z" fill="#1e293b"/>
+    <path d="M 485 282 L 505 282 L 502 325 L 488 325 Z" fill="#ea580c"/>
+    <line x1="465" y1="275" x2="488" y2="280" stroke="#fcd34d" stroke-width="3"/>
+  </g>
+
+  <!-- Visitor 3 (Passenger waiting on bench) -->
+  <g>
+    <rect x="535" y="270" width="85" height="10" rx="3" fill="#92400e"/>
+    <line x1="545" y1="280" x2="545" y2="330" stroke="#475569" stroke-width="3"/>
+    <line x1="605" y1="280" x2="605" y2="330" stroke="#475569" stroke-width="3"/>
+    <!-- Person sitting -->
+    <circle cx="575" cy="235" r="13" fill="#fed7aa"/>
+    <path d="M 565 250 L 588 250 L 585 300 L 568 300 Z" fill="#7c3aed"/>
+  </g>
+
+  <!-- Platform Badge -->
+  <g opacity="0.95">
+    <rect x="220" y="340" width="200" height="36" rx="18" fill="#0f172a" fill-opacity="0.9" stroke="#38bdf8" stroke-width="1.5"/>
+    <circle cx="240" cy="358" r="6" fill="#38bdf8"/>
+    <text x="256" y="363" font-family="system-ui, -apple-system, sans-serif" font-size="13" font-weight="800" fill="#ffffff" letter-spacing="0.5">PLATFORM ENTRY TICKET</text>
+  </g>
+</svg>
+

@@ -1,0 +1,99 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1440 900" width="100%" height="100%">
+  <defs>
+    <linearGradient id="nightSky" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#050c1a"/>
+      <stop offset="45%" stop-color="#0b1e36"/>
+      <stop offset="75%" stop-color="#19375e"/>
+      <stop offset="90%" stop-color="#c2410c"/>
+      <stop offset="100%" stop-color="#f97316"/>
+    </linearGradient>
+    <linearGradient id="trackGlow" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#f97316" stop-opacity="0.8"/>
+      <stop offset="50%" stop-color="#facc15" stop-opacity="1"/>
+      <stop offset="100%" stop-color="#38bdf8" stop-opacity="0.8"/>
+    </linearGradient>
+    <radialGradient id="locoHeadlight" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#ffffff"/>
+      <stop offset="40%" stop-color="#fef08a"/>
+      <stop offset="100%" stop-color="#f59e0b" stop-opacity="0"/>
+    </radialGradient>
+    <filter id="blurFilter" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="8"/>
+    </filter>
+  </defs>
+
+  <!-- Sky -->
+  <rect width="1440" height="900" fill="url(#nightSky)"/>
+
+  <!-- Distant Mountain Silhouettes -->
+  <path d="M 0 580 Q 200 480 400 560 T 800 520 T 1200 570 T 1440 540 L 1440 700 L 0 700 Z" fill="#091424" opacity="0.85"/>
+  <path d="M 0 620 Q 300 560 600 620 T 1100 590 T 1440 630 L 1440 700 L 0 700 Z" fill="#0c1b30"/>
+
+  <!-- Stars -->
+  <g fill="#ffffff" opacity="0.7">
+    <circle cx="120" cy="80" r="1.5"/>
+    <circle cx="280" cy="140" r="1.2"/>
+    <circle cx="450" cy="95" r="1.8"/>
+    <circle cx="620" cy="160" r="1.2"/>
+    <circle cx="780" cy="70" r="1.5"/>
+    <circle cx="950" cy="120" r="2"/>
+    <circle cx="1120" cy="90" r="1.3"/>
+    <circle cx="1300" cy="150" r="1.6"/>
+    <circle cx="200" cy="220" r="1.4"/>
+    <circle cx="850" cy="240" r="1.5"/>
+  </g>
+
+  <!-- Ground Plane -->
+  <rect x="0" y="650" width="1440" height="250" fill="#080e1a"/>
+
+  <!-- Curving Glowing Railway Tracks into the Horizon -->
+  <g opacity="0.9">
+    <!-- Outer Track Left -->
+    <path d="M 0 900 Q 450 780 720 630" stroke="url(#trackGlow)" stroke-width="6" fill="none"/>
+    <path d="M 40 900 Q 470 785 726 630" stroke="url(#trackGlow)" stroke-width="6" fill="none"/>
+
+    <!-- Track Right -->
+    <path d="M 1440 900 Q 990 780 740 630" stroke="url(#trackGlow)" stroke-width="6" fill="none"/>
+    <path d="M 1400 900 Q 970 785 734 630" stroke="url(#trackGlow)" stroke-width="6" fill="none"/>
+    
+    <!-- Sleepers / Ties -->
+    <g stroke="#334155" stroke-width="3" opacity="0.6">
+      <line x1="100" y1="870" x2="160" y2="880"/>
+      <line x1="220" y1="830" x2="270" y2="840"/>
+      <line x1="340" y1="790" x2="385" y2="800"/>
+      <line x1="460" y1="750" x2="500" y2="760"/>
+      <line x1="570" y1="710" x2="605" y2="720"/>
+      <line x1="660" y1="670" x2="685" y2="675"/>
+      <line x1="1340" y1="870" x2="1280" y2="880"/>
+      <line x1="1220" y1="830" x2="1170" y2="840"/>
+      <line x1="1100" y1="790" x2="1055" y2="800"/>
+      <line x1="980" y1="750" x2="940" y2="760"/>
+      <line x1="870" y1="710" x2="835" y2="720"/>
+      <line x1="780" y1="670" x2="755" y2="675"/>
+    </g>
+  </g>
+
+  <!-- Modern Express Train Approaching in Center-Distance -->
+  <g transform="translate(680, 560)">
+    <!-- Locomotive Headlight Light Beam Cone -->
+    <polygon points="50,65 0,350 400,350" fill="#fef08a" opacity="0.12" filter="url(#blurFilter)"/>
+    <!-- Locomotive Silhouette -->
+    <path d="M 20 60 Q 50 40 80 60 L 85 90 L 15 90 Z" fill="#0f172a" stroke="#38bdf8" stroke-width="1.5"/>
+    <!-- Windshield -->
+    <rect x="30" y="52" width="40" height="15" rx="3" fill="#38bdf8" opacity="0.8"/>
+    <!-- Dual Headlights -->
+    <circle cx="35" cy="74" r="7" fill="url(#locoHeadlight)"/>
+    <circle cx="65" cy="74" r="7" fill="url(#locoHeadlight)"/>
+    <!-- Top Marker Lamp -->
+    <circle cx="50" cy="46" r="4" fill="#ffffff"/>
+  </g>
+
+  <!-- Telegraph / OHE Catenary Masts -->
+  <g stroke="#475569" stroke-width="2.5" opacity="0.7">
+    <line x1="280" y1="580" x2="280" y2="760"/>
+    <line x1="260" y1="600" x2="310" y2="600"/>
+    <line x1="1160" y1="580" x2="1160" y2="760"/>
+    <line x1="1130" y1="600" x2="1180" y2="600"/>
+  </g>
+</svg>
+

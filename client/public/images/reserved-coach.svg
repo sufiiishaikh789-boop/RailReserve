@@ -1,0 +1,142 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 400" width="100%" height="100%">
+  <defs>
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0c2340"/>
+      <stop offset="50%" stop-color="#163860"/>
+      <stop offset="100%" stop-color="#1f4b7a"/>
+    </linearGradient>
+    <linearGradient id="windowView" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#38bdf8"/>
+      <stop offset="45%" stop-color="#bae6fd"/>
+      <stop offset="70%" stop-color="#86efac"/>
+      <stop offset="100%" stop-color="#22c55e"/>
+    </linearGradient>
+    <linearGradient id="sunGlow" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#fef08a" stop-opacity="0.8"/>
+      <stop offset="100%" stop-color="#f97316" stop-opacity="0"/>
+    </linearGradient>
+    <linearGradient id="seatUpholstery" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#2563eb"/>
+      <stop offset="100%" stop-color="#1d4ed8"/>
+    </linearGradient>
+    <linearGradient id="seatBack" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#1e40af"/>
+      <stop offset="100%" stop-color="#1e3a8a"/>
+    </linearGradient>
+    <linearGradient id="curtainGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#ea580c"/>
+      <stop offset="100%" stop-color="#c2410c"/>
+    </linearGradient>
+    <linearGradient id="floorGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#334155"/>
+      <stop offset="100%" stop-color="#0f172a"/>
+    </linearGradient>
+    <filter id="softGlow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="8" result="blur"/>
+      <feComposite in="SourceGraphic" in2="blur" operator="over"/>
+    </filter>
+  </defs>
+
+  <!-- Coach Interior Wall -->
+  <rect width="640" height="400" fill="url(#bgGrad)"/>
+
+  <!-- AC Ceiling Vent & Panel -->
+  <rect x="0" y="0" width="640" height="65" fill="#0f172a" opacity="0.6"/>
+  <rect x="180" y="20" width="280" height="14" rx="7" fill="#38bdf8" opacity="0.3"/>
+  <circle cx="210" cy="27" r="4" fill="#38bdf8" opacity="0.7"/>
+  <circle cx="240" cy="27" r="4" fill="#38bdf8" opacity="0.7"/>
+  <circle cx="400" cy="27" r="4" fill="#38bdf8" opacity="0.7"/>
+  <circle cx="430" cy="27" r="4" fill="#38bdf8" opacity="0.7"/>
+
+  <!-- Warm Reading Spotlights -->
+  <ellipse cx="140" cy="40" rx="35" ry="12" fill="#fef08a" opacity="0.25" filter="url(#softGlow)"/>
+  <ellipse cx="500" cy="40" rx="35" ry="12" fill="#fef08a" opacity="0.25" filter="url(#softGlow)"/>
+
+  <!-- Large Panoramic Train Windows -->
+  <!-- Left Window -->
+  <g>
+    <rect x="60" y="70" width="240" height="160" rx="16" fill="#1e293b" stroke="#475569" stroke-width="5"/>
+    <rect x="66" y="76" width="228" height="148" rx="12" fill="url(#windowView)"/>
+    <!-- Scenery: distant hills & sun -->
+    <path d="M 66 170 Q 140 130 210 170 T 294 175 L 294 224 L 66 224 Z" fill="#15803d" opacity="0.8"/>
+    <path d="M 120 185 Q 180 155 250 190 T 294 195 L 294 224 L 120 224 Z" fill="#166534"/>
+    <circle cx="120" cy="115" r="22" fill="url(#sunGlow)"/>
+    <path d="M 66 210 L 294 210" stroke="#fef08a" stroke-width="2" opacity="0.6"/>
+    <!-- Orange Curtains tied back -->
+    <path d="M 66 76 Q 85 110 75 160 Q 95 160 85 76 Z" fill="url(#curtainGrad)"/>
+    <path d="M 294 76 Q 275 110 285 160 Q 265 160 275 76 Z" fill="url(#curtainGrad)"/>
+  </g>
+
+  <!-- Right Window -->
+  <g>
+    <rect x="340" y="70" width="240" height="160" rx="16" fill="#1e293b" stroke="#475569" stroke-width="5"/>
+    <rect x="346" y="76" width="228" height="148" rx="12" fill="url(#windowView)"/>
+    <!-- Scenery -->
+    <path d="M 346 165 Q 420 125 490 165 T 574 170 L 574 224 L 346 224 Z" fill="#15803d" opacity="0.8"/>
+    <path d="M 390 180 Q 460 150 530 185 L 574 190 L 574 224 L 390 224 Z" fill="#166534"/>
+    <!-- Curtains -->
+    <path d="M 346 76 Q 365 110 355 160 Q 375 160 365 76 Z" fill="url(#curtainGrad)"/>
+    <path d="M 574 76 Q 555 110 565 160 Q 545 160 555 76 Z" fill="url(#curtainGrad)"/>
+  </g>
+
+  <!-- Floor -->
+  <rect x="0" y="310" width="640" height="90" fill="url(#floorGrad)"/>
+  <rect x="0" y="310" width="640" height="6" fill="#f97316" opacity="0.4"/>
+
+  <!-- Reserved Passenger Seating & Passengers -->
+  <!-- Left Side Reserved Passenger (Reading a Book / Relaxing) -->
+  <g>
+    <!-- Seat Backrest -->
+    <path d="M 40 180 C 40 140, 110 140, 120 180 L 130 330 L 30 330 Z" fill="url(#seatBack)"/>
+    <rect x="35" y="145" width="80" height="25" rx="8" fill="#3b82f6" opacity="0.5"/>
+    <!-- Headrest cushion -->
+    <rect x="50" y="152" width="50" height="16" rx="4" fill="#ffffff" opacity="0.85"/>
+    <text x="75" y="164" font-size="8" font-family="sans-serif" font-weight="bold" fill="#1e3a8a" text-anchor="middle">BERTH 14</text>
+    
+    <!-- Passenger Silhouette / Stylized Figure -->
+    <circle cx="85" cy="180" r="16" fill="#fcd34d"/> <!-- Head -->
+    <path d="M 72 175 C 75 165, 95 165, 98 175 Z" fill="#1e293b"/> <!-- Hair -->
+    <path d="M 65 200 C 65 190, 105 190, 105 200 L 115 280 L 55 280 Z" fill="#0284c7"/> <!-- Shirt -->
+    <!-- Book in hand -->
+    <path d="M 90 230 L 115 220 L 125 240 L 100 250 Z" fill="#f8fafc"/>
+    <path d="M 100 225 L 120 235" stroke="#f97316" stroke-width="2"/>
+    
+    <!-- Seat Base Cushion -->
+    <rect x="30" y="275" width="130" height="45" rx="10" fill="url(#seatUpholstery)"/>
+    <!-- Foldable Table with Coffee Cup -->
+    <rect x="150" y="245" width="55" height="8" rx="3" fill="#64748b"/>
+    <rect x="165" y="230" width="16" height="16" rx="2" fill="#f8fafc"/>
+    <path d="M 181 234 Q 186 238 181 242" stroke="#f8fafc" stroke-width="2" fill="none"/>
+    <path d="M 170 225 Q 173 220 170 216" stroke="#ffffff" stroke-width="1.5" opacity="0.6" fill="none"/>
+  </g>
+
+  <!-- Right Side Reserved Passenger (Working on Laptop / Gazing outside) -->
+  <g>
+    <!-- Seat Backrest -->
+    <path d="M 600 180 C 600 140, 530 140, 520 180 L 510 330 L 610 330 Z" fill="url(#seatBack)"/>
+    <rect x="525" y="145" width="80" height="25" rx="8" fill="#3b82f6" opacity="0.5"/>
+    <rect x="540" y="152" width="50" height="16" rx="4" fill="#ffffff" opacity="0.85"/>
+    <text x="565" y="164" font-size="8" font-family="sans-serif" font-weight="bold" fill="#1e3a8a" text-anchor="middle">BERTH 15</text>
+
+    <!-- Passenger Silhouette -->
+    <circle cx="555" cy="180" r="16" fill="#fbcfe8"/>
+    <path d="M 542 175 C 545 165, 568 165, 570 175 Z" fill="#831843"/>
+    <path d="M 535 200 C 535 190, 575 190, 575 200 L 585 280 L 525 280 Z" fill="#059669"/>
+    
+    <!-- Seat Cushion -->
+    <rect x="480" y="275" width="130" height="45" rx="10" fill="url(#seatUpholstery)"/>
+    <!-- Foldable Table with Laptop -->
+    <rect x="435" y="245" width="60" height="8" rx="3" fill="#64748b"/>
+    <!-- Laptop -->
+    <path d="M 445 245 L 485 245 L 480 220 L 450 220 Z" fill="#cbd5e1"/>
+    <rect x="452" y="222" width="24" height="18" fill="#38bdf8" opacity="0.9"/>
+  </g>
+
+  <!-- Reserved Category Badge / Watermark Detail -->
+  <g opacity="0.95">
+    <rect x="220" y="340" width="200" height="36" rx="18" fill="#0f172a" fill-opacity="0.85" stroke="#f97316" stroke-width="1.5"/>
+    <circle cx="240" cy="358" r="6" fill="#22c55e"/>
+    <text x="256" y="363" font-family="system-ui, -apple-system, sans-serif" font-size="13" font-weight="800" fill="#ffffff" letter-spacing="0.5">AC SLEEPER &amp; CHAIR CAR</text>
+  </g>
+</svg>
+

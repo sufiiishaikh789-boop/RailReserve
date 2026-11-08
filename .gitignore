@@ -13,8 +13,10 @@ build/
 *.sqlite-journal
 *.sqlite-wal
 *.db
-server/data/*.db
-server/data/*.sqlite
+*.db-shm
+*.db-wal
+server/data/*.db*
+server/data/*.sqlite*
 
 # Environment variables
 .env

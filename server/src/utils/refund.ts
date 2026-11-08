@@ -85,6 +85,7 @@ export function calculateFare(
   passengerCount: number,
   trainType: string
 ): {
+  passengers: number;
   base_fare_per_passenger: number;
   base_fare_total: number;
   reservation_fee: number;
@@ -97,6 +98,7 @@ export function calculateFare(
   const totalFare = baseTotal + reservationFee + superfastSurcharge;
 
   return {
+    passengers: passengerCount,
     base_fare_per_passenger: baseFare,
     base_fare_total: baseTotal,
     reservation_fee: reservationFee,

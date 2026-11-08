@@ -1,7 +1,9 @@
 # Test Plan — Railway Reservation System (Team 11)
 **Course:** CSE 2271 | Presidency University, Bengaluru  
 **Test Framework:** Vitest + Supertest (integration testing over HTTP)  
-**Total Test Cases:** 27 (TC-01 through TC-27)
+**Total Test Cases:** 71 automated tests across 40 test categories (TC-01 through TC-40)  
+**Latest Pass Rate:** 71/71 passed (100% success rate)  
+**Test Runner:** Vitest v2.1.9 | **Environment:** Node.js v24 + node:sqlite
 
 ---
 
@@ -82,6 +84,29 @@
 | TC-25c | Non-existent PNR | FR-20 | Error handling | HTTP 404 |
 | TC-26 | Health Check | NFR-05 | Portability | status=ok, team=Team 11 |
 | TC-27 | Stations Listing | FR-03 | Happy path | Array with code, name, city |
+| TC-28a | Passenger Registration | FR-21 | Security/Happy path | HTTP 201, valid JWT, hashed password |
+| TC-28b | Duplicate Email Rejection | FR-21 | ECP (invalid) | HTTP 409 Conflict |
+| TC-28c | Passenger Login (Valid) | FR-21 | Security/Auth | HTTP 200, JWT token returned |
+| TC-28d | Passenger Login (Invalid) | FR-21 | Security | HTTP 401 Unauthorized |
+| TC-29a | Passenger Profile Access | FR-22 | Security (JWT) | HTTP 200, user data matching token |
+| TC-29b | Saved Passengers CRUD | FR-22 | State management | HTTP 201 add, 200 list, 200 delete |
+| TC-29c | Personalized Dashboard | FR-22 | Aggregation | HTTP 200, booking summary & counts |
+| TC-30a | Payment Gateway Mode | FR-10 | Integration | HTTP 200, returns 'DEMO' or 'SANDBOX' |
+| TC-30b | Payment Order Creation | FR-10 | Integration | HTTP 200, Razorpay/demo order_id & paise |
+| TC-31 | E-Ticket QR Code | FR-12 | Cryptographic output| HTTP 200, base64 PNG data URL generated |
+| TC-32 | Password Reset Flow | FR-21 | Security (Tokens) | HTTP 200, token issued and password updated |
+| TC-33 | UTS Unreserved Fare & Booking | FR-23 | Calculation/UTS | HTTP 201, distance-based slab fare & QR ticket |
+| TC-34 | Platform Entry Pass Booking | FR-24 | Standard Fee | HTTP 201, ₹10/ticket, 2-hour window & QR pass |
+| TC-35 | Consolidated My-All-Tickets | FR-25 | Aggregation | HTTP 200, unreserved + platform passes returned |
+| TC-36 | Payment Mode Discovery | FR-10, Sec-06 | Gateway Health | HTTP 200, mode, currency=INR, key_id, disclaimer |
+| TC-37a| Payment Order Creation | FR-10 | Hold Lifecycle | HTTP 200, order_id, hold_expires_at (~10m in future) |
+| TC-37b| Expired Hold Rejection | FR-10, FR-04 | Inventory Safety | HTTP 410 Gone on order attempt after hold window |
+| TC-38a| Valid Signature Verification | FR-10, Sec-05 | Cryptographic HMAC | HTTP 200, HMAC-SHA256 verified, booking confirmed |
+| TC-38b| Verification Idempotency | FR-10, NFR-02 | Idempotent Replay | HTTP 200, safe replay without double booking |
+| TC-38c| Forged Signature Rejection | FR-10, Sec-05 | Tamper Detection | HTTP 400 Bad Request on invalid HMAC signature |
+| TC-39a| Webhook Payment Captured | FR-10, Sec-04 | Asynchronous Webhook | HTTP 200, booking confirmed from payment.captured |
+| TC-39b| Forged Webhook Rejection | FR-10, Sec-04 | Webhook Security | HTTP 400 Bad Request on forged webhook signature |
+| TC-40 | Inventory Restoration on Failure | FR-10, Sec-07 | ACID Rollback | HTTP 200, seats held safely restored on failure |
 
 ---
 
