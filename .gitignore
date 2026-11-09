@@ -42,3 +42,29 @@ Thumbs.db
 # Test coverage
 coverage/
 .nyc_output/
+
+
+# Private credentials
+User_Credentials.txt
+*.env
+.env
+.env.*
+!.env.example
+
+# Local databases
+*.db
+*.sqlite
+*.sqlite3
+
+# Temporary files
+scratch/
+*.log
+
+# Dependencies and build files
+node_modules/
+dist/
+build/
+coverage/
+
+# Local editor files
+.vscode/

@@ -1,0 +1,189 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 900" width="100%" height="100%">
+  <defs>
+    <linearGradient id="ucBg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0f172a" /><stop offset="100%" stop-color="#1e293b" />
+    </linearGradient>
+    <linearGradient id="ucBoxGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#1e3a8a" /><stop offset="100%" stop-color="#2563eb" />
+    </linearGradient>
+    <filter id="ucShadow" x="-5%" y="-5%" width="110%" height="115%">
+      <feDropShadow dx="0" dy="3" stdDeviation="4" flood-color="#000" flood-opacity="0.3"/>
+    </filter>
+  </defs>
+
+  <!-- Background -->
+  <rect width="1200" height="900" fill="url(#ucBg)" rx="16" />
+
+  <!-- Title -->
+  <text x="600" y="45" font-family="system-ui, sans-serif" font-size="26" font-weight="800" fill="#ffffff" text-anchor="middle">
+    USE CASE DIAGRAM — RAILRESERVE (TEAM 11)
+  </text>
+  <text x="600" y="72" font-family="system-ui, sans-serif" font-size="13" font-weight="500" fill="#94a3b8" text-anchor="middle">
+    CSE2271 Mini Project · Actors, Core Use Cases & System Boundary Specification
+  </text>
+
+  <!-- System Boundary Rectangle -->
+  <rect x="220" y="95" width="760" height="775" rx="12" fill="#1e293b" stroke="#3b82f6" stroke-width="2" filter="url(#ucShadow)" />
+  <rect x="220" y="95" width="760" height="34" rx="12" fill="url(#ucBoxGrad)" />
+  <text x="240" y="118" font-family="system-ui, sans-serif" font-size="14" font-weight="700" fill="#ffffff">
+    Railway Reservation System (RailReserve — CSE2271)
+  </text>
+
+  <!-- Helper Macro for Use Case Ellipse -->
+  <!-- ACTOR 1: PASSENGER (Left Top) -->
+  <g transform="translate(60, 240)">
+    <circle cx="50" cy="30" r="18" fill="#38bdf8" stroke="#0284c7" stroke-width="2" />
+    <line x1="50" y1="48" x2="50" y2="100" stroke="#38bdf8" stroke-width="3" />
+    <line x1="15" y1="70" x2="85" y2="70" stroke="#38bdf8" stroke-width="3" />
+    <line x1="50" y1="100" x2="20" y2="145" stroke="#38bdf8" stroke-width="3" />
+    <line x1="50" y1="100" x2="80" y2="145" stroke="#38bdf8" stroke-width="3" />
+    <text x="50" y="170" font-family="system-ui, sans-serif" font-size="14" font-weight="700" fill="#38bdf8" text-anchor="middle">Passenger</text>
+  </g>
+
+  <!-- ACTOR 2: SYSTEM ADMINISTRATOR (Left Bottom) -->
+  <g transform="translate(60, 640)">
+    <circle cx="50" cy="30" r="18" fill="#f43f5e" stroke="#e11d48" stroke-width="2" />
+    <line x1="50" y1="48" x2="50" y2="100" stroke="#f43f5e" stroke-width="3" />
+    <line x1="15" y1="70" x2="85" y2="70" stroke="#f43f5e" stroke-width="3" />
+    <line x1="50" y1="100" x2="20" y2="145" stroke="#f43f5e" stroke-width="3" />
+    <line x1="50" y1="100" x2="80" y2="145" stroke="#f43f5e" stroke-width="3" />
+    <text x="50" y="170" font-family="system-ui, sans-serif" font-size="14" font-weight="700" fill="#f43f5e" text-anchor="middle">System Admin</text>
+  </g>
+
+  <!-- ACTOR 3: PAYMENT SIMULATOR (Right Middle) -->
+  <g transform="translate(1040, 380)">
+    <circle cx="50" cy="30" r="18" fill="#10b981" stroke="#059669" stroke-width="2" />
+    <line x1="50" y1="48" x2="50" y2="100" stroke="#10b981" stroke-width="3" />
+    <line x1="15" y1="70" x2="85" y2="70" stroke="#10b981" stroke-width="3" />
+    <line x1="50" y1="100" x2="20" y2="145" stroke="#10b981" stroke-width="3" />
+    <line x1="50" y1="100" x2="80" y2="145" stroke="#10b981" stroke-width="3" />
+    <text x="50" y="165" font-family="system-ui, sans-serif" font-size="13" font-weight="700" fill="#10b981" text-anchor="middle">Payment Simulator</text>
+    <text x="50" y="180" font-family="system-ui, sans-serif" font-size="11" fill="#6ee7b7" text-anchor="middle">(Razorpay/UPI Gateway)</text>
+  </g>
+
+  <!-- USE CASES COLUMN 1 (Left within Boundary) -->
+  <!-- UC-01 -->
+  <g transform="translate(250, 150)">
+    <ellipse cx="120" cy="25" rx="105" ry="24" fill="#0f172a" stroke="#60a5fa" stroke-width="1.5" />
+    <text x="120" y="30" font-family="system-ui, sans-serif" font-size="11" font-weight="600" fill="#e2e8f0" text-anchor="middle">Search Trains &amp; Schedules</text>
+  </g>
+  <!-- UC-02 -->
+  <g transform="translate(250, 220)">
+    <ellipse cx="120" cy="25" rx="105" ry="24" fill="#0f172a" stroke="#60a5fa" stroke-width="1.5" />
+    <text x="120" y="30" font-family="system-ui, sans-serif" font-size="11" font-weight="600" fill="#e2e8f0" text-anchor="middle">Select Category &amp; Class</text>
+  </g>
+  <!-- UC-03 -->
+  <g transform="translate(250, 290)">
+    <ellipse cx="120" cy="25" rx="105" ry="24" fill="#0f172a" stroke="#60a5fa" stroke-width="1.5" />
+    <text x="120" y="30" font-family="system-ui, sans-serif" font-size="11" font-weight="600" fill="#e2e8f0" text-anchor="middle">Enter Passenger Details</text>
+  </g>
+  <!-- UC-04 -->
+  <g transform="translate(250, 360)">
+    <ellipse cx="120" cy="25" rx="105" ry="24" fill="#0f172a" stroke="#38bdf8" stroke-width="2" />
+    <text x="120" y="25" font-family="system-ui, sans-serif" font-size="11" font-weight="700" fill="#ffffff" text-anchor="middle">Book Ticket</text>
+    <text x="120" y="39" font-family="system-ui, sans-serif" font-size="10" fill="#93c5fd" text-anchor="middle">(Atomic Allocation Lock)</text>
+  </g>
+  <!-- UC-05 -->
+  <g transform="translate(250, 440)">
+    <ellipse cx="120" cy="25" rx="105" ry="24" fill="#0f172a" stroke="#60a5fa" stroke-width="1.5" />
+    <text x="120" y="30" font-family="system-ui, sans-serif" font-size="11" font-weight="600" fill="#e2e8f0" text-anchor="middle">View Booking History</text>
+  </g>
+  <!-- UC-06 -->
+  <g transform="translate(250, 510)">
+    <ellipse cx="120" cy="25" rx="105" ry="24" fill="#0f172a" stroke="#60a5fa" stroke-width="1.5" />
+    <text x="120" y="30" font-family="system-ui, sans-serif" font-size="11" font-weight="600" fill="#e2e8f0" text-anchor="middle">Track PNR Live Status</text>
+  </g>
+  <!-- UC-07 -->
+  <g transform="translate(250, 580)">
+    <ellipse cx="120" cy="25" rx="105" ry="24" fill="#0f172a" stroke="#60a5fa" stroke-width="1.5" />
+    <text x="120" y="25" font-family="system-ui, sans-serif" font-size="11" font-weight="600" fill="#e2e8f0" text-anchor="middle">Cancel Reservation</text>
+    <text x="120" y="39" font-family="system-ui, sans-serif" font-size="10" fill="#94a3b8" text-anchor="middle">&amp; Request Refund</text>
+  </g>
+
+  <!-- USE CASES COLUMN 2 (Right within Boundary) -->
+  <!-- UC-08 -->
+  <g transform="translate(560, 150)">
+    <ellipse cx="120" cy="25" rx="105" ry="24" fill="#0f172a" stroke="#a78bfa" stroke-width="1.5" />
+    <text x="120" y="30" font-family="system-ui, sans-serif" font-size="11" font-weight="600" fill="#ddd6fe" text-anchor="middle">Check Seat Availability</text>
+  </g>
+  <!-- UC-09 -->
+  <g transform="translate(560, 220)">
+    <ellipse cx="120" cy="25" rx="105" ry="24" fill="#0f172a" stroke="#a78bfa" stroke-width="1.5" />
+    <text x="120" y="30" font-family="system-ui, sans-serif" font-size="11" font-weight="600" fill="#ddd6fe" text-anchor="middle">Opt for Waiting List (WL)</text>
+  </g>
+  <!-- UC-10 -->
+  <g transform="translate(560, 310)">
+    <ellipse cx="120" cy="25" rx="105" ry="24" fill="#0f172a" stroke="#34d399" stroke-width="2" />
+    <text x="120" y="25" font-family="system-ui, sans-serif" font-size="11" font-weight="700" fill="#ffffff" text-anchor="middle">Process Payment / Hold</text>
+    <text x="120" y="39" font-family="system-ui, sans-serif" font-size="10" fill="#a7f3d0" text-anchor="middle">(10-Minute Lock Timer)</text>
+  </g>
+  <!-- UC-11 -->
+  <g transform="translate(560, 390)">
+    <ellipse cx="120" cy="25" rx="105" ry="24" fill="#0f172a" stroke="#a78bfa" stroke-width="1.5" />
+    <text x="120" y="25" font-family="system-ui, sans-serif" font-size="11" font-weight="600" fill="#ddd6fe" text-anchor="middle">Receive Digital E-Ticket</text>
+    <text x="120" y="39" font-family="system-ui, sans-serif" font-size="10" fill="#94a3b8" text-anchor="middle">(Scannable QR Pass)</text>
+  </g>
+  <!-- UC-12 -->
+  <g transform="translate(560, 480)">
+    <ellipse cx="120" cy="25" rx="105" ry="24" fill="#0f172a" stroke="#a78bfa" stroke-width="1.5" />
+    <text x="120" y="25" font-family="system-ui, sans-serif" font-size="11" font-weight="600" fill="#ddd6fe" text-anchor="middle">Process Simulated Refund</text>
+    <text x="120" y="39" font-family="system-ui, sans-serif" font-size="10" fill="#94a3b8" text-anchor="middle">(Time-Tiered Deductions)</text>
+  </g>
+  <!-- UC-13 -->
+  <g transform="translate(560, 560)">
+    <ellipse cx="120" cy="25" rx="105" ry="24" fill="#0f172a" stroke="#f43f5e" stroke-width="1.5" />
+    <text x="120" y="30" font-family="system-ui, sans-serif" font-size="11" font-weight="600" fill="#fecdd3" text-anchor="middle">Admin Authenticate &amp; Audit</text>
+  </g>
+  <!-- UC-14 -->
+  <g transform="translate(560, 630)">
+    <ellipse cx="120" cy="25" rx="105" ry="24" fill="#0f172a" stroke="#f43f5e" stroke-width="1.5" />
+    <text x="120" y="30" font-family="system-ui, sans-serif" font-size="11" font-weight="600" fill="#fecdd3" text-anchor="middle">Manage Inventory &amp; Schedules</text>
+  </g>
+  <!-- UC-15 -->
+  <g transform="translate(560, 700)">
+    <ellipse cx="120" cy="25" rx="105" ry="24" fill="#0f172a" stroke="#f43f5e" stroke-width="1.5" />
+    <text x="120" y="30" font-family="system-ui, sans-serif" font-size="11" font-weight="600" fill="#fecdd3" text-anchor="middle">Promote FIFO Waiting List</text>
+  </g>
+
+  <!-- CONNECTORS: PASSENGER TO USE CASES -->
+  <line x1="140" y1="280" x2="250" y2="175" stroke="#38bdf8" stroke-width="1.5" />
+  <line x1="140" y1="290" x2="250" y2="245" stroke="#38bdf8" stroke-width="1.5" />
+  <line x1="140" y1="300" x2="250" y2="315" stroke="#38bdf8" stroke-width="1.5" />
+  <line x1="140" y1="310" x2="250" y2="385" stroke="#38bdf8" stroke-width="2" />
+  <line x1="140" y1="320" x2="250" y2="465" stroke="#38bdf8" stroke-width="1.5" />
+  <line x1="140" y1="330" x2="250" y2="535" stroke="#38bdf8" stroke-width="1.5" />
+  <line x1="140" y1="340" x2="250" y2="605" stroke="#38bdf8" stroke-width="1.5" />
+
+  <!-- CONNECTORS: ADMIN TO USE CASES -->
+  <line x1="140" y1="710" x2="560" y2="585" stroke="#f43f5e" stroke-width="1.5" />
+  <line x1="140" y1="720" x2="560" y2="655" stroke="#f43f5e" stroke-width="1.5" />
+
+  <!-- CONNECTORS: PAYMENT SIMULATOR TO USE CASES -->
+  <line x1="1040" y1="430" x2="800" y2="335" stroke="#10b981" stroke-width="2" />
+  <line x1="1040" y1="440" x2="800" y2="505" stroke="#10b981" stroke-width="1.5" />
+
+  <!-- <<include>> and <<extend>> RELATIONSHIPS -->
+  <!-- Book Ticket -> Check Availability <<include>> -->
+  <line x1="470" y1="370" x2="570" y2="185" stroke="#94a3b8" stroke-width="1.2" stroke-dasharray="4,3" />
+  <text x="500" y="270" font-family="monospace" font-size="9" fill="#94a3b8">&lt;&lt;include&gt;&gt;</text>
+
+  <!-- Book Ticket -> Process Payment <<include>> -->
+  <line x1="490" y1="385" x2="560" y2="345" stroke="#94a3b8" stroke-width="1.2" stroke-dasharray="4,3" />
+  <text x="500" y="360" font-family="monospace" font-size="9" fill="#94a3b8">&lt;&lt;include&gt;&gt;</text>
+
+  <!-- Book Ticket -> Receive E-Ticket <<include>> -->
+  <line x1="490" y1="395" x2="560" y2="410" stroke="#94a3b8" stroke-width="1.2" stroke-dasharray="4,3" />
+  <text x="500" y="415" font-family="monospace" font-size="9" fill="#94a3b8">&lt;&lt;include&gt;&gt;</text>
+
+  <!-- Book Ticket <- Opt for WL <<extend>> -->
+  <line x1="475" y1="375" x2="575" y2="255" stroke="#f59e0b" stroke-width="1.2" stroke-dasharray="4,3" />
+  <text x="515" y="310" font-family="monospace" font-size="9" fill="#f59e0b">&lt;&lt;extend&gt;&gt;</text>
+
+  <!-- Cancel Ticket -> Process Refund <<include>> -->
+  <line x1="470" y1="600" x2="580" y2="515" stroke="#94a3b8" stroke-width="1.2" stroke-dasharray="4,3" />
+  <text x="505" y="550" font-family="monospace" font-size="9" fill="#94a3b8">&lt;&lt;include&gt;&gt;</text>
+
+  <!-- Cancel Ticket -> Promote FIFO WL <<include>> -->
+  <line x1="470" y1="610" x2="580" y2="715" stroke="#94a3b8" stroke-width="1.2" stroke-dasharray="4,3" />
+  <text x="500" y="675" font-family="monospace" font-size="9" fill="#94a3b8">&lt;&lt;include&gt;&gt;</text>
+</svg>

@@ -1,0 +1,162 @@
+{
+  "_type": "Project",
+  "_id": "PROJ_ACT_7FMYBL3TMW7JF8PD",
+  "name": "RailReserve_Activity_Model",
+  "ownedElements": [
+    {
+      "_type": "UMLModel",
+      "_id": "MOD_ACT_BDBUCJGSMW7JF8PD",
+      "name": "ActivityModel",
+      "ownedElements": [
+        {
+          "_type": "UMLActivity",
+          "_id": "ACT_GRAPH_AHK72T9NMW7JF8PD",
+          "_parent": {
+            "$ref": "MOD_ACT_BDBUCJGSMW7JF8PD"
+          },
+          "name": "BookingAndCancellationWorkflow",
+          "nodes": [
+            {
+              "_type": "UMLAction",
+              "_id": "ACT_NODE_BZC7XNVYMW7JF8PD",
+              "_parent": {
+                "$ref": "ACT_GRAPH_AHK72T9NMW7JF8PD"
+              },
+              "name": "User enters travel search parameters (Source, Dest, Date)"
+            },
+            {
+              "_type": "UMLAction",
+              "_id": "ACT_NODE_EON44ZL6MW7JF8PD",
+              "_parent": {
+                "$ref": "ACT_GRAPH_AHK72T9NMW7JF8PD"
+              },
+              "name": "System checks train schedules and multi-class inventory"
+            },
+            {
+              "_type": "UMLAction",
+              "_id": "ACT_NODE_DRGNAXOLMW7JF8PD",
+              "_parent": {
+                "$ref": "ACT_GRAPH_AHK72T9NMW7JF8PD"
+              },
+              "name": "Display train options, departure times, fares, and seat statuses"
+            },
+            {
+              "_type": "UMLAction",
+              "_id": "ACT_NODE_9Z6A2SB1MW7JF8PD",
+              "_parent": {
+                "$ref": "ACT_GRAPH_AHK72T9NMW7JF8PD"
+              },
+              "name": "Passenger selects desired train and travel class"
+            },
+            {
+              "_type": "UMLAction",
+              "_id": "ACT_NODE_JICG6A1MMW7JF8PD",
+              "_parent": {
+                "$ref": "ACT_GRAPH_AHK72T9NMW7JF8PD"
+              },
+              "name": "Passenger enters passenger names, ages, and berth preferences"
+            },
+            {
+              "_type": "UMLAction",
+              "_id": "ACT_NODE_BAFPTL1WMW7JF8PD",
+              "_parent": {
+                "$ref": "ACT_GRAPH_AHK72T9NMW7JF8PD"
+              },
+              "name": "System verifies seat availability (CNF vs WL)"
+            },
+            {
+              "_type": "UMLAction",
+              "_id": "ACT_NODE_NIXDVJC4MW7JF8PD",
+              "_parent": {
+                "$ref": "ACT_GRAPH_AHK72T9NMW7JF8PD"
+              },
+              "name": "System starts 10-minute inventory lock & renders checkout"
+            },
+            {
+              "_type": "UMLAction",
+              "_id": "ACT_NODE_9X2123BQMW7JF8PD",
+              "_parent": {
+                "$ref": "ACT_GRAPH_AHK72T9NMW7JF8PD"
+              },
+              "name": "Payment simulation executed (UPI / Card)"
+            },
+            {
+              "_type": "UMLAction",
+              "_id": "ACT_NODE_OL3O1GAKMW7JF8PD",
+              "_parent": {
+                "$ref": "ACT_GRAPH_AHK72T9NMW7JF8PD"
+              },
+              "name": "System executes atomic transaction (BEGIN IMMEDIATE)"
+            },
+            {
+              "_type": "UMLAction",
+              "_id": "ACT_NODE_GP5HN90NMW7JF8PD",
+              "_parent": {
+                "$ref": "ACT_GRAPH_AHK72T9NMW7JF8PD"
+              },
+              "name": "Decrement seat inventory and assign coach and seat/berth"
+            },
+            {
+              "_type": "UMLAction",
+              "_id": "ACT_NODE_P2UZ7WWXMW7JF8PD",
+              "_parent": {
+                "$ref": "ACT_GRAPH_AHK72T9NMW7JF8PD"
+              },
+              "name": "Generate unique 10-digit PNR and render digital E-Ticket with QR"
+            },
+            {
+              "_type": "UMLAction",
+              "_id": "ACT_NODE_TQNDF075MW7JF8PD",
+              "_parent": {
+                "$ref": "ACT_GRAPH_AHK72T9NMW7JF8PD"
+              },
+              "name": "User requests booking cancellation"
+            },
+            {
+              "_type": "UMLAction",
+              "_id": "ACT_NODE_NHJX4GWDMW7JF8PD",
+              "_parent": {
+                "$ref": "ACT_GRAPH_AHK72T9NMW7JF8PD"
+              },
+              "name": "Compute time-tiered refund and deduct cancellation fee"
+            },
+            {
+              "_type": "UMLAction",
+              "_id": "ACT_NODE_ZKPPK9JDMW7JF8PD",
+              "_parent": {
+                "$ref": "ACT_GRAPH_AHK72T9NMW7JF8PD"
+              },
+              "name": "Release seat inventory back to available pool"
+            },
+            {
+              "_type": "UMLAction",
+              "_id": "ACT_NODE_MDSDZX6GMW7JF8PD",
+              "_parent": {
+                "$ref": "ACT_GRAPH_AHK72T9NMW7JF8PD"
+              },
+              "name": "Promote first FIFO waiting-list passenger to Confirmed (CNF)"
+            },
+            {
+              "_type": "UMLAction",
+              "_id": "ACT_NODE_IWEXYM51MW7JF8PD",
+              "_parent": {
+                "$ref": "ACT_GRAPH_AHK72T9NMW7JF8PD"
+              },
+              "name": "Record audit log entries for all state mutations"
+            }
+          ],
+          "ownedElements": [
+            {
+              "_type": "UMLActivityDiagram",
+              "_id": "DIAG_ACT_YGAQM1ZWMW7JF8PD",
+              "_parent": {
+                "$ref": "ACT_GRAPH_AHK72T9NMW7JF8PD"
+              },
+              "name": "End_to_End_Reservation_Activity_Diagram"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

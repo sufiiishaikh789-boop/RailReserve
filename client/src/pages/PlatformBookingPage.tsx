@@ -383,11 +383,10 @@ export function PlatformBookingPage() {
                       key={num}
                       type="button"
                       onClick={() => setQuantity(num)}
-                      className={`py-2 rounded-xl text-xs font-bold transition border ${
-                        quantity === num
+                      className={`py-2 rounded-xl text-xs font-bold transition border ${quantity === num
                           ? 'bg-amber-600 text-white border-amber-600 shadow-sm'
                           : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100'
-                      }`}
+                        }`}
                     >
                       {num}
                     </button>

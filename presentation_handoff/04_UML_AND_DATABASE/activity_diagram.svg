@@ -1,0 +1,153 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 950" width="100%" height="100%">
+  <defs>
+    <linearGradient id="actBg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0f172a" /><stop offset="100%" stop-color="#1e293b" />
+    </linearGradient>
+    <filter id="actShadow" x="-5%" y="-5%" width="110%" height="115%">
+      <feDropShadow dx="0" dy="3" stdDeviation="4" flood-color="#000" flood-opacity="0.3"/>
+    </filter>
+  </defs>
+
+  <rect width="1200" height="950" fill="url(#actBg)" rx="16" />
+
+  <text x="600" y="45" font-family="system-ui, sans-serif" font-size="26" font-weight="800" fill="#ffffff" text-anchor="middle">
+    ACTIVITY DIAGRAM — END-TO-END RESERVATION &amp; CANCELLATION WORKFLOW
+  </text>
+  <text x="600" y="72" font-family="system-ui, sans-serif" font-size="13" font-weight="500" fill="#94a3b8" text-anchor="middle">
+    Atomic Concurrency Engine · 10-Minute Hold Timer · FIFO Waitlist Promotion Algorithm
+  </text>
+
+  <!-- SWIMLANE 1: PASSENGER -->
+  <rect x="50" y="95" width="340" height="825" rx="8" fill="#1e293b" stroke="#334155" stroke-width="1.5" />
+  <rect x="50" y="95" width="340" height="34" rx="8" fill="#1e3a8a" />
+  <text x="220" y="118" font-family="system-ui, sans-serif" font-size="14" font-weight="700" fill="#ffffff" text-anchor="middle">PASSENGER (CLIENT UI)</text>
+
+  <!-- SWIMLANE 2: BOOKING CONTROLLER & CONCURRENCY ENGINE -->
+  <rect x="410" y="95" width="380" height="825" rx="8" fill="#1e293b" stroke="#334155" stroke-width="1.5" />
+  <rect x="410" y="95" width="380" height="34" rx="8" fill="#9a3412" />
+  <text x="600" y="118" font-family="system-ui, sans-serif" font-size="14" font-weight="700" fill="#ffffff" text-anchor="middle">RESERVATION ENGINE &amp; PAYMENT GATEWAY</text>
+
+  <!-- SWIMLANE 3: ACID DATABASE & AUDIT LOG -->
+  <rect x="810" y="95" width="340" height="825" rx="8" fill="#1e293b" stroke="#334155" stroke-width="1.5" />
+  <rect x="810" y="95" width="340" height="34" rx="8" fill="#065f46" />
+  <text x="980" y="118" font-family="system-ui, sans-serif" font-size="14" font-weight="700" fill="#ffffff" text-anchor="middle">ACID PERSISTENCE (SQLITE WAL)</text>
+
+  <!-- WORKFLOW NODES -->
+  <!-- 1. Start Node -->
+  <circle cx="220" cy="160" r="14" fill="#38bdf8" stroke="#0284c7" stroke-width="3" />
+
+  <!-- 2. Enter Search -->
+  <rect x="110" y="200" width="220" height="42" rx="8" fill="#0f172a" stroke="#38bdf8" stroke-width="1.5" />
+  <text x="220" y="226" font-family="system-ui, sans-serif" font-size="11" font-weight="600" fill="#e2e8f0" text-anchor="middle">Enter Source, Dest &amp; Travel Date</text>
+
+  <!-- Connector Start -> Enter Search -->
+  <line x1="220" y1="174" x2="220" y2="200" stroke="#94a3b8" stroke-width="2" />
+  <polygon points="220,200 216,192 224,192" fill="#94a3b8" />
+
+  <!-- 3. System Query Trains -->
+  <rect x="470" y="200" width="260" height="42" rx="8" fill="#0f172a" stroke="#ea580c" stroke-width="1.5" />
+  <text x="600" y="226" font-family="system-ui, sans-serif" font-size="11" font-weight="600" fill="#e2e8f0" text-anchor="middle">Query Routes &amp; Compute Multi-Class Tariff</text>
+
+  <!-- Connector Enter Search -> Query Trains -->
+  <line x1="330" y1="221" x2="470" y2="221" stroke="#94a3b8" stroke-width="2" />
+  <polygon points="470,221 462,217 462,225" fill="#94a3b8" />
+
+  <!-- 4. Display Results -->
+  <rect x="110" y="270" width="220" height="42" rx="8" fill="#0f172a" stroke="#38bdf8" stroke-width="1.5" />
+  <text x="220" y="296" font-family="system-ui, sans-serif" font-size="11" font-weight="600" fill="#e2e8f0" text-anchor="middle">Render Trains, Availability &amp; Fares</text>
+
+  <!-- Connector Query Trains -> Display Results -->
+  <line x1="600" y1="242" x2="600" y2="280" stroke="#94a3b8" stroke-width="2" />
+  <line x1="600" y1="280" x2="330" y2="280" stroke="#94a3b8" stroke-width="2" />
+  <polygon points="330,280 338,276 338,284" fill="#94a3b8" />
+
+  <!-- 5. Select Train & Class -->
+  <rect x="110" y="340" width="220" height="42" rx="8" fill="#0f172a" stroke="#38bdf8" stroke-width="1.5" />
+  <text x="220" y="366" font-family="system-ui, sans-serif" font-size="11" font-weight="600" fill="#e2e8f0" text-anchor="middle">Select Class &amp; Enter Passenger Info</text>
+
+  <!-- Connector Display -> Select -->
+  <line x1="220" y1="312" x2="220" y2="340" stroke="#94a3b8" stroke-width="2" />
+  <polygon points="220,340 216,332 224,332" fill="#94a3b8" />
+
+  <!-- 6. Inventory Check Decision -->
+  <polygon points="600,340 645,361 600,382 555,361" fill="#0f172a" stroke="#f59e0b" stroke-width="2" />
+  <text x="600" y="365" font-family="system-ui, sans-serif" font-size="10" font-weight="700" fill="#fbbf24" text-anchor="middle">Seats &gt; 0?</text>
+
+  <!-- Connector Select -> Decision -->
+  <line x1="330" y1="361" x2="555" y2="361" stroke="#94a3b8" stroke-width="2" />
+  <polygon points="555,361 547,357 547,365" fill="#94a3b8" />
+
+  <!-- 7. Hold Timer & Checkout Modal -->
+  <rect x="470" y="420" width="260" height="48" rx="8" fill="#0f172a" stroke="#10b981" stroke-width="2" />
+  <text x="600" y="442" font-family="system-ui, sans-serif" font-size="11" font-weight="700" fill="#34d399" text-anchor="middle">Start 10-Min Inventory Hold Timer</text>
+  <text x="600" y="457" font-family="system-ui, sans-serif" font-size="10" fill="#cbd5e1" text-anchor="middle">&amp; Render Simulated Checkout (UPI/Card)</text>
+
+  <!-- Connector Decision Yes -> Hold Timer -->
+  <line x1="600" y1="382" x2="600" y2="420" stroke="#10b981" stroke-width="2" />
+  <polygon points="600,420 596,412 604,412" fill="#10b981" />
+  <text x="615" y="405" font-family="monospace" font-size="10" fill="#34d399">[Yes: CNF]</text>
+
+  <!-- 8. Payment Outcome Decision -->
+  <polygon points="600,500 645,521 600,542 555,521" fill="#0f172a" stroke="#f59e0b" stroke-width="2" />
+  <text x="600" y="525" font-family="system-ui, sans-serif" font-size="10" font-weight="700" fill="#fbbf24" text-anchor="middle">Paid?</text>
+
+  <!-- Connector Hold Timer -> Payment Decision -->
+  <line x1="600" y1="468" x2="600" y2="500" stroke="#94a3b8" stroke-width="2" />
+  <polygon points="600,500 596,492 604,492" fill="#94a3b8" />
+
+  <!-- 9. Atomic Transaction Commit -->
+  <rect x="850" y="495" width="260" height="52" rx="8" fill="#0f172a" stroke="#059669" stroke-width="2" />
+  <text x="980" y="518" font-family="system-ui, sans-serif" font-size="11" font-weight="700" fill="#6ee7b7" text-anchor="middle">Execute BEGIN IMMEDIATE Commit</text>
+  <text x="980" y="535" font-family="monospace" font-size="10" fill="#cbd5e1" text-anchor="middle">Decrement Seat · Assign Berth · Mint PNR</text>
+
+  <!-- Connector Paid Yes -> Atomic Commit -->
+  <line x1="645" y1="521" x2="850" y2="521" stroke="#10b981" stroke-width="2" />
+  <polygon points="850,521 842,517 842,525" fill="#10b981" />
+  <text x="730" y="513" font-family="monospace" font-size="10" fill="#34d399">[Success]</text>
+
+  <!-- 10. Issue Digital E-Ticket with QR -->
+  <rect x="110" y="580" width="220" height="48" rx="8" fill="#0f172a" stroke="#38bdf8" stroke-width="2" />
+  <text x="220" y="602" font-family="system-ui, sans-serif" font-size="11" font-weight="700" fill="#38bdf8" text-anchor="middle">Render Digital E-Ticket &amp; QR</text>
+  <text x="220" y="618" font-family="system-ui, sans-serif" font-size="10" fill="#94a3b8" text-anchor="middle">Confirmed 10-Digit PNR &amp; Seat</text>
+
+  <!-- Connector Atomic Commit -> Issue E-Ticket -->
+  <line x1="980" y1="547" x2="980" y2="604" stroke="#94a3b8" stroke-width="2" />
+  <line x1="980" y1="604" x2="330" y2="604" stroke="#94a3b8" stroke-width="2" />
+  <polygon points="330,604 338,600 338,608" fill="#94a3b8" />
+
+  <!-- 11. CANCELLATION & FIFO PROMOTION WORKFLOW -->
+  <rect x="110" y="670" width="220" height="42" rx="8" fill="#0f172a" stroke="#f43f5e" stroke-width="1.5" />
+  <text x="220" y="696" font-family="system-ui, sans-serif" font-size="11" font-weight="600" fill="#fecdd3" text-anchor="middle">Passenger Requests Cancellation</text>
+
+  <!-- Connector E-Ticket -> Cancellation -->
+  <line x1="220" y1="628" x2="220" y2="670" stroke="#94a3b8" stroke-width="2" stroke-dasharray="4,3" />
+  <polygon points="220,670 216,662 224,662" fill="#94a3b8" />
+
+  <!-- 12. Calculate Refund Penalty -->
+  <rect x="470" y="670" width="260" height="42" rx="8" fill="#0f172a" stroke="#f43f5e" stroke-width="1.5" />
+  <text x="600" y="696" font-family="system-ui, sans-serif" font-size="11" font-weight="600" fill="#fecdd3" text-anchor="middle">Apply Time-Tiered Refund Rules (&gt;48h/12-48h)</text>
+
+  <!-- Connector Cancel -> Refund -->
+  <line x1="330" y1="691" x2="470" y2="691" stroke="#f43f5e" stroke-width="2" />
+  <polygon points="470,691 462,687 462,695" fill="#f43f5e" />
+
+  <!-- 13. Release Inventory & Promote WL -->
+  <rect x="850" y="665" width="260" height="52" rx="8" fill="#0f172a" stroke="#f43f5e" stroke-width="2" />
+  <text x="980" y="688" font-family="system-ui, sans-serif" font-size="11" font-weight="700" fill="#f43f5e" text-anchor="middle">Release Berth &amp; Promote First WL</text>
+  <text x="980" y="705" font-family="monospace" font-size="10" fill="#cbd5e1" text-anchor="middle">FIFO Queue Re-assignment &amp; Audit Log</text>
+
+  <!-- Connector Refund -> Release & Promote -->
+  <line x1="730" y1="691" x2="850" y2="691" stroke="#f43f5e" stroke-width="2" />
+  <polygon points="850,691 842,687 842,695" fill="#f43f5e" />
+
+  <!-- 14. Final Node -->
+  <circle cx="220" cy="800" r="16" fill="none" stroke="#e2e8f0" stroke-width="2" />
+  <circle cx="220" cy="800" r="10" fill="#e2e8f0" />
+  <text x="220" y="835" font-family="system-ui, sans-serif" font-size="11" font-weight="600" fill="#94a3b8" text-anchor="middle">Workflow Terminated</text>
+
+  <!-- Connector Release -> Final Node -->
+  <line x1="980" y1="717" x2="980" y2="760" stroke="#94a3b8" stroke-width="2" />
+  <line x1="980" y1="760" x2="220" y2="760" stroke="#94a3b8" stroke-width="2" />
+  <line x1="220" y1="760" x2="220" y2="784" stroke="#94a3b8" stroke-width="2" />
+  <polygon points="220,784 216,776 224,776" fill="#94a3b8" />
+</svg>

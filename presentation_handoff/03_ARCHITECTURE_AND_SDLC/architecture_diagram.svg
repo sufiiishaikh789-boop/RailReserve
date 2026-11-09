@@ -1,0 +1,178 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 800" width="100%" height="100%">
+  <defs>
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0f172a" />
+      <stop offset="100%" stop-color="#1e293b" />
+    </linearGradient>
+    <linearGradient id="tier1Grad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#1e3a8a" />
+      <stop offset="100%" stop-color="#2563eb" />
+    </linearGradient>
+    <linearGradient id="tier2Grad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#c2410c" />
+      <stop offset="100%" stop-color="#ea580c" />
+    </linearGradient>
+    <linearGradient id="tier3Grad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#065f46" />
+      <stop offset="100%" stop-color="#059669" />
+    </linearGradient>
+    <filter id="shadow" x="-5%" y="-5%" width="110%" height="115%">
+      <feDropShadow dx="0" dy="4" stdDeviation="6" flood-color="#000" flood-opacity="0.35"/>
+    </filter>
+  </defs>
+
+  <!-- Background -->
+  <rect width="1200" height="800" fill="url(#bgGrad)" rx="16" />
+
+  <!-- Title & Subtitle -->
+  <text x="600" y="55" font-family="system-ui, -apple-system, sans-serif" font-size="28" font-weight="800" fill="#ffffff" text-anchor="middle" letter-spacing="1">
+    RAILRESERVE — 3-TIER SYSTEM ARCHITECTURE
+  </text>
+  <text x="600" y="85" font-family="system-ui, -apple-system, sans-serif" font-size="14" font-weight="500" fill="#94a3b8" text-anchor="middle">
+    CSE2271 Mini Project · Team 11 · Presidency University, Bengaluru
+  </text>
+
+  <!-- ================= TIER 1: PRESENTATION LAYER ================= -->
+  <rect x="60" y="120" width="1080" height="170" rx="12" fill="#1e293b" stroke="#334155" stroke-width="2" filter="url(#shadow)" />
+  <rect x="60" y="120" width="1080" height="38" rx="12" fill="url(#tier1Grad)" />
+  <text x="80" y="145" font-family="system-ui, sans-serif" font-size="15" font-weight="700" fill="#ffffff">
+    TIER 1: PRESENTATION LAYER (CLIENT-SIDE SPA)
+  </text>
+  <text x="1120" y="145" font-family="monospace" font-size="12" font-weight="600" fill="#bfdbfe" text-anchor="end">
+    React 18.3 · TypeScript 5.7 · Tailwind CSS 3.4 · Vite 6.0
+  </text>
+
+  <!-- Tier 1 Cards -->
+  <g transform="translate(80, 175)">
+    <!-- Box 1: Auth & Gateway -->
+    <rect x="0" y="0" width="240" height="95" rx="8" fill="#0f172a" stroke="#2563eb" stroke-width="1.5" />
+    <text x="120" y="28" font-family="system-ui, sans-serif" font-size="13" font-weight="700" fill="#60a5fa" text-anchor="middle">Auth & Session Gateway</text>
+    <text x="120" y="50" font-family="system-ui, sans-serif" font-size="11" fill="#cbd5e1" text-anchor="middle">Login / Register / Recover</text>
+    <text x="120" y="70" font-family="monospace" font-size="10" fill="#94a3b8" text-anchor="middle">AuthContext · JWT Sync</text>
+
+    <!-- Box 2: 3-Category Journey Planner -->
+    <rect x="260" y="0" width="240" height="95" rx="8" fill="#0f172a" stroke="#2563eb" stroke-width="1.5" />
+    <text x="380" y="28" font-family="system-ui, sans-serif" font-size="13" font-weight="700" fill="#60a5fa" text-anchor="middle">3-Category Journey Planner</text>
+    <text x="380" y="50" font-family="system-ui, sans-serif" font-size="11" fill="#cbd5e1" text-anchor="middle">Reserved / Unreserved / Platform</text>
+    <text x="380" y="70" font-family="monospace" font-size="10" fill="#94a3b8" text-anchor="middle">Dashboard Cards & Navigation</text>
+
+    <!-- Box 3: Train Discovery & Filters -->
+    <rect x="520" y="0" width="240" height="95" rx="8" fill="#0f172a" stroke="#2563eb" stroke-width="1.5" />
+    <text x="640" y="28" font-family="system-ui, sans-serif" font-size="13" font-weight="700" fill="#60a5fa" text-anchor="middle">Discovery & Class Grid</text>
+    <text x="640" y="50" font-family="system-ui, sans-serif" font-size="11" fill="#cbd5e1" text-anchor="middle">Station Autocomplete & Date</text>
+    <text x="640" y="70" font-family="monospace" font-size="10" fill="#94a3b8" text-anchor="middle">1A · 2A · 3A · SL · 2S Badges</text>
+
+    <!-- Box 4: Checkout & Ticket View -->
+    <rect x="780" y="0" width="240" height="95" rx="8" fill="#0f172a" stroke="#2563eb" stroke-width="1.5" />
+    <text x="900" y="28" font-family="system-ui, sans-serif" font-size="13" font-weight="700" fill="#60a5fa" text-anchor="middle">Checkout & E-Ticket Boarding</text>
+    <text x="900" y="50" font-family="system-ui, sans-serif" font-size="11" fill="#cbd5e1" text-anchor="middle">10-Min Hold Timer · UPI/Card</text>
+    <text x="900" y="70" font-family="monospace" font-size="10" fill="#94a3b8" text-anchor="middle">Scannable QR · PNR Tracker</text>
+  </g>
+
+  <!-- Connector Arrow 1 -> 2 -->
+  <line x1="600" y1="290" x2="600" y2="340" stroke="#f97316" stroke-width="3" stroke-dasharray="6,4" />
+  <polygon points="600,345 594,333 606,333" fill="#f97316" />
+  <rect x="470" y="303" width="260" height="24" rx="12" fill="#0f172a" stroke="#f97316" stroke-width="1" />
+  <text x="600" y="319" font-family="monospace" font-size="11" font-weight="700" fill="#fb923c" text-anchor="middle">
+    HTTP / REST APIs · JWT Bearer Token
+  </text>
+
+  <!-- ================= TIER 2: APPLICATION & SERVICES LAYER ================= -->
+  <rect x="60" y="350" width="1080" height="210" rx="12" fill="#1e293b" stroke="#334155" stroke-width="2" filter="url(#shadow)" />
+  <rect x="60" y="350" width="1080" height="38" rx="12" fill="url(#tier2Grad)" />
+  <text x="80" y="375" font-family="system-ui, sans-serif" font-size="15" font-weight="700" fill="#ffffff">
+    TIER 2: APPLICATION & BUSINESS LOGIC TIER (EXPRESS REST ENGINE)
+  </text>
+  <text x="1120" y="375" font-family="monospace" font-size="12" font-weight="600" fill="#ffedd5" text-anchor="end">
+    Node.js v22+ · Express 4.21 · TypeScript · TSX Execution
+  </text>
+
+  <!-- Tier 2 Cards -->
+  <g transform="translate(80, 405)">
+    <!-- Sub-Box 1: Security & Middleware -->
+    <rect x="0" y="0" width="190" height="135" rx="8" fill="#0f172a" stroke="#ea580c" stroke-width="1.5" />
+    <text x="95" y="26" font-family="system-ui, sans-serif" font-size="12" font-weight="700" fill="#fdba74" text-anchor="middle">Security Middleware</text>
+    <text x="95" y="50" font-family="monospace" font-size="10" fill="#cbd5e1" text-anchor="middle">• Helmet HTTP Guard</text>
+    <text x="95" y="70" font-family="monospace" font-size="10" fill="#cbd5e1" text-anchor="middle">• Rate Limiter (20/15m)</text>
+    <text x="95" y="90" font-family="monospace" font-size="10" fill="#cbd5e1" text-anchor="middle">• CORS Whitelisting</text>
+    <text x="95" y="110" font-family="monospace" font-size="10" fill="#cbd5e1" text-anchor="middle">• Idempotency Lock</text>
+
+    <!-- Sub-Box 2: AuthController -->
+    <rect x="210" y="0" width="190" height="135" rx="8" fill="#0f172a" stroke="#ea580c" stroke-width="1.5" />
+    <text x="305" y="26" font-family="system-ui, sans-serif" font-size="12" font-weight="700" fill="#fdba74" text-anchor="middle">Auth Controller</text>
+    <text x="305" y="50" font-family="monospace" font-size="10" fill="#cbd5e1" text-anchor="middle">• BCrypt 10 Salt Rounds</text>
+    <text x="305" y="70" font-family="monospace" font-size="10" fill="#cbd5e1" text-anchor="middle">• JWT Minting (HS256)</text>
+    <text x="305" y="90" font-family="monospace" font-size="10" fill="#cbd5e1" text-anchor="middle">• Token Expiry (24h)</text>
+    <text x="305" y="110" font-family="monospace" font-size="10" fill="#cbd5e1" text-anchor="middle">• Role Verification (RBAC)</text>
+
+    <!-- Sub-Box 3: Train & Pricing Engine -->
+    <rect x="420" y="0" width="190" height="135" rx="8" fill="#0f172a" stroke="#ea580c" stroke-width="1.5" />
+    <text x="515" y="26" font-family="system-ui, sans-serif" font-size="12" font-weight="700" fill="#fdba74" text-anchor="middle">Train & Fare Engine</text>
+    <text x="515" y="50" font-family="monospace" font-size="10" fill="#cbd5e1" text-anchor="middle">• Autocomplete Search</text>
+    <text x="515" y="70" font-family="monospace" font-size="10" fill="#cbd5e1" text-anchor="middle">• Route Distance Calc</text>
+    <text x="515" y="90" font-family="monospace" font-size="10" fill="#cbd5e1" text-anchor="middle">• Multi-Class Tariff</text>
+    <text x="515" y="110" font-family="monospace" font-size="10" fill="#cbd5e1" text-anchor="middle">• Dynamic 5% GST Calc</text>
+
+    <!-- Sub-Box 4: Booking & Concurrency Lock -->
+    <rect x="630" y="0" width="190" height="135" rx="8" fill="#0f172a" stroke="#ea580c" stroke-width="1.5" />
+    <text x="725" y="26" font-family="system-ui, sans-serif" font-size="12" font-weight="700" fill="#fdba74" text-anchor="middle">Atomic Booking Lock</text>
+    <text x="725" y="50" font-family="monospace" font-size="10" fill="#cbd5e1" text-anchor="middle">• BEGIN IMMEDIATE Lock</text>
+    <text x="725" y="70" font-family="monospace" font-size="10" fill="#cbd5e1" text-anchor="middle">• Zero Double-Allocation</text>
+    <text x="725" y="90" font-family="monospace" font-size="10" fill="#cbd5e1" text-anchor="middle">• FIFO Waitlist Queue</text>
+    <text x="725" y="110" font-family="monospace" font-size="10" fill="#cbd5e1" text-anchor="middle">• 10-Digit Unique PNR</text>
+
+    <!-- Sub-Box 5: Payment & Refund Machine -->
+    <rect x="840" y="0" width="180" height="135" rx="8" fill="#0f172a" stroke="#ea580c" stroke-width="1.5" />
+    <text x="930" y="26" font-family="system-ui, sans-serif" font-size="12" font-weight="700" fill="#fdba74" text-anchor="middle">Payment & Refunds</text>
+    <text x="930" y="50" font-family="monospace" font-size="10" fill="#cbd5e1" text-anchor="middle">• Razorpay Simulation</text>
+    <text x="930" y="70" font-family="monospace" font-size="10" fill="#cbd5e1" text-anchor="middle">• Webhook State Machine</text>
+    <text x="930" y="90" font-family="monospace" font-size="10" fill="#cbd5e1" text-anchor="middle">• WL Auto-Promotion</text>
+    <text x="930" y="110" font-family="monospace" font-size="10" fill="#cbd5e1" text-anchor="middle">• Tiered Refund Rules</text>
+  </g>
+
+  <!-- Connector Arrow 2 -> 3 -->
+  <line x1="600" y1="560" x2="600" y2="610" stroke="#10b981" stroke-width="3" stroke-dasharray="6,4" />
+  <polygon points="600,615 594,603 606,603" fill="#10b981" />
+  <rect x="460" y="573" width="280" height="24" rx="12" fill="#0f172a" stroke="#10b981" stroke-width="1" />
+  <text x="600" y="589" font-family="monospace" font-size="11" font-weight="700" fill="#34d399" text-anchor="middle">
+    ACID Transactions · WAL Mode (Sub-50ms)
+  </text>
+
+  <!-- ================= TIER 3: DATA PERSISTENCE LAYER ================= -->
+  <rect x="60" y="620" width="1080" height="145" rx="12" fill="#1e293b" stroke="#334155" stroke-width="2" filter="url(#shadow)" />
+  <rect x="60" y="620" width="1080" height="38" rx="12" fill="url(#tier3Grad)" />
+  <text x="80" y="645" font-family="system-ui, sans-serif" font-size="15" font-weight="700" fill="#ffffff">
+    TIER 3: DATA PERSISTENCE TIER (ACID RELATIONAL ENGINE)
+  </text>
+  <text x="1120" y="645" font-family="monospace" font-size="12" font-weight="600" fill="#a7f3d0" text-anchor="end">
+    SQLite 3.45+ · Write-Ahead Logging (WAL) · 3NF Normalized Schema
+  </text>
+
+  <!-- Tier 3 Tables Matrix -->
+  <g transform="translate(80, 672)">
+    <rect x="0" y="0" width="190" height="75" rx="6" fill="#0f172a" stroke="#059669" stroke-width="1" />
+    <text x="95" y="24" font-family="system-ui, sans-serif" font-size="12" font-weight="700" fill="#6ee7b7" text-anchor="middle">Identity & Roles</text>
+    <text x="95" y="44" font-family="monospace" font-size="10" fill="#cbd5e1" text-anchor="middle">• users (PK user_id)</text>
+    <text x="95" y="62" font-family="monospace" font-size="10" fill="#94a3b8" text-anchor="middle">email UK · phone UK</text>
+
+    <rect x="210" y="0" width="190" height="75" rx="6" fill="#0f172a" stroke="#059669" stroke-width="1" />
+    <text x="305" y="24" font-family="system-ui, sans-serif" font-size="12" font-weight="700" fill="#6ee7b7" text-anchor="middle">Network & Routes</text>
+    <text x="305" y="44" font-family="monospace" font-size="10" fill="#cbd5e1" text-anchor="middle">• stations · trains</text>
+    <text x="305" y="62" font-family="monospace" font-size="10" fill="#94a3b8" text-anchor="middle">• routes (distance_km)</text>
+
+    <rect x="420" y="0" width="190" height="75" rx="6" fill="#0f172a" stroke="#059669" stroke-width="1" />
+    <text x="515" y="24" font-family="system-ui, sans-serif" font-size="12" font-weight="700" fill="#6ee7b7" text-anchor="middle">Inventory & Classes</text>
+    <text x="515" y="44" font-family="monospace" font-size="10" fill="#cbd5e1" text-anchor="middle">• train_schedules</text>
+    <text x="515" y="62" font-family="monospace" font-size="10" fill="#94a3b8" text-anchor="middle">• seat_inventory (WAL)</text>
+
+    <rect x="630" y="0" width="190" height="75" rx="6" fill="#0f172a" stroke="#059669" stroke-width="1" />
+    <text x="725" y="24" font-family="system-ui, sans-serif" font-size="12" font-weight="700" fill="#6ee7b7" text-anchor="middle">Bookings & Berths</text>
+    <text x="725" y="44" font-family="monospace" font-size="10" fill="#cbd5e1" text-anchor="middle">• bookings (pnr_number)</text>
+    <text x="725" y="62" font-family="monospace" font-size="10" fill="#94a3b8" text-anchor="middle">• passengers (berth/age)</text>
+
+    <rect x="840" y="0" width="180" height="75" rx="6" fill="#0f172a" stroke="#059669" stroke-width="1" />
+    <text x="930" y="24" font-family="system-ui, sans-serif" font-size="12" font-weight="700" fill="#6ee7b7" text-anchor="middle">Finance & Audit</text>
+    <text x="930" y="44" font-family="monospace" font-size="10" fill="#cbd5e1" text-anchor="middle">• transactions · refunds</text>
+    <text x="930" y="62" font-family="monospace" font-size="10" fill="#94a3b8" text-anchor="middle">• audit_logs (immutable)</text>
+  </g>
+</svg>

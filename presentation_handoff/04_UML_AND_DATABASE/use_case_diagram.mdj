@@ -1,0 +1,392 @@
+{
+  "_type": "Project",
+  "_id": "PROJ_R1UWCY4RMW7JF8JV",
+  "name": "RailReserve_CSE2271_Team11",
+  "ownedElements": [
+    {
+      "_type": "UMLModel",
+      "_id": "MOD_UC_KHGY8J09MW7JF8JV",
+      "_parent": {
+        "$ref": "PROJ_R1UWCY4RMW7JF8JV"
+      },
+      "name": "UseCaseModel",
+      "ownedElements": [
+        {
+          "_type": "UMLUseCaseDiagram",
+          "_id": "DIAG_UC_NPPKHJJOMW7JF8JV",
+          "_parent": {
+            "$ref": "MOD_UC_KHGY8J09MW7JF8JV"
+          },
+          "name": "RailReserve_Complete_Use_Case_Diagram",
+          "ownedViews": [
+            {
+              "_type": "UMLSubsystemView",
+              "_id": "VIEW_SUB_GWWFH6PNMW7JF8JV",
+              "model": {
+                "$ref": "SUB_SYS_7E75X5ZJMW7JF8JV"
+              },
+              "left": 240,
+              "top": 40,
+              "width": 580,
+              "height": 820,
+              "nameLabel": {
+                "_type": "LabelView",
+                "text": "Railway Reservation System (RailReserve - Team 11)"
+              }
+            },
+            {
+              "_type": "UMLActorView",
+              "_id": "V_ACT_BVYUWU48MW7JF8JW",
+              "model": {
+                "$ref": "ACT_IPT2XZ1JMW7JF8JV"
+              },
+              "left": 60,
+              "top": 200,
+              "width": 80,
+              "height": 100
+            },
+            {
+              "_type": "UMLActorView",
+              "_id": "V_ACT_MOPT4N43MW7JF8JW",
+              "model": {
+                "$ref": "ACT_U1KGFQOKMW7JF8JV"
+              },
+              "left": 60,
+              "top": 620,
+              "width": 80,
+              "height": 100
+            },
+            {
+              "_type": "UMLActorView",
+              "_id": "V_ACT_I9D9ZGY4MW7JF8JW",
+              "model": {
+                "$ref": "ACT_W9YW0W9LMW7JF8JV"
+              },
+              "left": 880,
+              "top": 380,
+              "width": 80,
+              "height": 100
+            },
+            {
+              "_type": "UMLUseCaseView",
+              "_id": "V_UC_0CMZWGRHMW7JF8JW",
+              "model": {
+                "$ref": "UC_8D5QTLU2MW7JF8JV"
+              },
+              "left": 310,
+              "top": 80,
+              "width": 190,
+              "height": 60
+            },
+            {
+              "_type": "UMLUseCaseView",
+              "_id": "V_UC_UY5BUU4XMW7JF8JW",
+              "model": {
+                "$ref": "UC_89DP2FV0MW7JF8JV"
+              },
+              "left": 530,
+              "top": 80,
+              "width": 190,
+              "height": 60
+            },
+            {
+              "_type": "UMLUseCaseView",
+              "_id": "V_UC_55K7MWQLMW7JF8JW",
+              "model": {
+                "$ref": "UC_TYJQ3Z1HMW7JF8JV"
+              },
+              "left": 310,
+              "top": 170,
+              "width": 190,
+              "height": 60
+            },
+            {
+              "_type": "UMLUseCaseView",
+              "_id": "V_UC_W6INV0FFMW7JF8JW",
+              "model": {
+                "$ref": "UC_2IU5KTVKMW7JF8JV"
+              },
+              "left": 530,
+              "top": 170,
+              "width": 190,
+              "height": 60
+            },
+            {
+              "_type": "UMLUseCaseView",
+              "_id": "V_UC_P2S0AZU0MW7JF8JW",
+              "model": {
+                "$ref": "UC_CX43LEH6MW7JF8JV"
+              },
+              "left": 310,
+              "top": 260,
+              "width": 190,
+              "height": 60
+            },
+            {
+              "_type": "UMLUseCaseView",
+              "_id": "V_UC_MQ7O754EMW7JF8JW",
+              "model": {
+                "$ref": "UC_5FMQ8T5BMW7JF8JV"
+              },
+              "left": 530,
+              "top": 260,
+              "width": 190,
+              "height": 60
+            },
+            {
+              "_type": "UMLUseCaseView",
+              "_id": "V_UC_CTS2NJ74MW7JF8JW",
+              "model": {
+                "$ref": "UC_3BT5T9W9MW7JF8JV"
+              },
+              "left": 310,
+              "top": 350,
+              "width": 190,
+              "height": 60
+            },
+            {
+              "_type": "UMLUseCaseView",
+              "_id": "V_UC_JBTXT2D3MW7JF8JW",
+              "model": {
+                "$ref": "UC_D3BJ0YHZMW7JF8JV"
+              },
+              "left": 530,
+              "top": 350,
+              "width": 190,
+              "height": 60
+            },
+            {
+              "_type": "UMLUseCaseView",
+              "_id": "V_UC_4638R4C4MW7JF8JW",
+              "model": {
+                "$ref": "UC_NL2Q3PS6MW7JF8JV"
+              },
+              "left": 310,
+              "top": 440,
+              "width": 190,
+              "height": 60
+            },
+            {
+              "_type": "UMLUseCaseView",
+              "_id": "V_UC_AD7SBAQVMW7JF8JW",
+              "model": {
+                "$ref": "UC_N7Q4OFXYMW7JF8JV"
+              },
+              "left": 530,
+              "top": 440,
+              "width": 190,
+              "height": 60
+            },
+            {
+              "_type": "UMLUseCaseView",
+              "_id": "V_UC_F4EWFNP3MW7JF8JW",
+              "model": {
+                "$ref": "UC_ZGPO08ELMW7JF8JV"
+              },
+              "left": 310,
+              "top": 530,
+              "width": 190,
+              "height": 60
+            },
+            {
+              "_type": "UMLUseCaseView",
+              "_id": "V_UC_4I1Z2Y4RMW7JF8JW",
+              "model": {
+                "$ref": "UC_SSF1A0A9MW7JF8JV"
+              },
+              "left": 530,
+              "top": 530,
+              "width": 190,
+              "height": 60
+            },
+            {
+              "_type": "UMLUseCaseView",
+              "_id": "V_UC_ENOK5M4SMW7JF8JW",
+              "model": {
+                "$ref": "UC_QBTHRHG3MW7JF8JV"
+              },
+              "left": 310,
+              "top": 620,
+              "width": 190,
+              "height": 60
+            },
+            {
+              "_type": "UMLUseCaseView",
+              "_id": "V_UC_RKP0CY0NMW7JF8JW",
+              "model": {
+                "$ref": "UC_RFRSE8DPMW7JF8JV"
+              },
+              "left": 530,
+              "top": 620,
+              "width": 190,
+              "height": 60
+            },
+            {
+              "_type": "UMLUseCaseView",
+              "_id": "V_UC_K1VXMOE1MW7JF8JW",
+              "model": {
+                "$ref": "UC_M43UGYO8MW7JF8JV"
+              },
+              "left": 310,
+              "top": 710,
+              "width": 190,
+              "height": 60
+            }
+          ]
+        },
+        {
+          "_type": "UMLSubsystem",
+          "_id": "SUB_SYS_7E75X5ZJMW7JF8JV",
+          "_parent": {
+            "$ref": "MOD_UC_KHGY8J09MW7JF8JV"
+          },
+          "name": "Railway Reservation System (RailReserve - Team 11)"
+        },
+        {
+          "_type": "UMLActor",
+          "_id": "ACT_IPT2XZ1JMW7JF8JV",
+          "_parent": {
+            "$ref": "MOD_UC_KHGY8J09MW7JF8JV"
+          },
+          "name": "Passenger"
+        },
+        {
+          "_type": "UMLActor",
+          "_id": "ACT_U1KGFQOKMW7JF8JV",
+          "_parent": {
+            "$ref": "MOD_UC_KHGY8J09MW7JF8JV"
+          },
+          "name": "System Administrator"
+        },
+        {
+          "_type": "UMLActor",
+          "_id": "ACT_W9YW0W9LMW7JF8JV",
+          "_parent": {
+            "$ref": "MOD_UC_KHGY8J09MW7JF8JV"
+          },
+          "name": "Payment Simulator Gateway"
+        },
+        {
+          "_type": "UMLUseCase",
+          "_id": "UC_8D5QTLU2MW7JF8JV",
+          "_parent": {
+            "$ref": "MOD_UC_KHGY8J09MW7JF8JV"
+          },
+          "name": "Search Trains & Check Availability"
+        },
+        {
+          "_type": "UMLUseCase",
+          "_id": "UC_89DP2FV0MW7JF8JV",
+          "_parent": {
+            "$ref": "MOD_UC_KHGY8J09MW7JF8JV"
+          },
+          "name": "View Train Schedule & Routes"
+        },
+        {
+          "_type": "UMLUseCase",
+          "_id": "UC_TYJQ3Z1HMW7JF8JV",
+          "_parent": {
+            "$ref": "MOD_UC_KHGY8J09MW7JF8JV"
+          },
+          "name": "Select Journey Category & Class"
+        },
+        {
+          "_type": "UMLUseCase",
+          "_id": "UC_2IU5KTVKMW7JF8JV",
+          "_parent": {
+            "$ref": "MOD_UC_KHGY8J09MW7JF8JV"
+          },
+          "name": "Enter Passenger Details & Preferences"
+        },
+        {
+          "_type": "UMLUseCase",
+          "_id": "UC_CX43LEH6MW7JF8JV",
+          "_parent": {
+            "$ref": "MOD_UC_KHGY8J09MW7JF8JV"
+          },
+          "name": "Book Ticket (Atomic Allocation)"
+        },
+        {
+          "_type": "UMLUseCase",
+          "_id": "UC_5FMQ8T5BMW7JF8JV",
+          "_parent": {
+            "$ref": "MOD_UC_KHGY8J09MW7JF8JV"
+          },
+          "name": "Opt for Waiting List (WL)"
+        },
+        {
+          "_type": "UMLUseCase",
+          "_id": "UC_3BT5T9W9MW7JF8JV",
+          "_parent": {
+            "$ref": "MOD_UC_KHGY8J09MW7JF8JV"
+          },
+          "name": "Process Payment / Checkout"
+        },
+        {
+          "_type": "UMLUseCase",
+          "_id": "UC_D3BJ0YHZMW7JF8JV",
+          "_parent": {
+            "$ref": "MOD_UC_KHGY8J09MW7JF8JV"
+          },
+          "name": "Receive Digital E-Ticket with QR"
+        },
+        {
+          "_type": "UMLUseCase",
+          "_id": "UC_NL2Q3PS6MW7JF8JV",
+          "_parent": {
+            "$ref": "MOD_UC_KHGY8J09MW7JF8JV"
+          },
+          "name": "View Booking History & PNR Status"
+        },
+        {
+          "_type": "UMLUseCase",
+          "_id": "UC_N7Q4OFXYMW7JF8JV",
+          "_parent": {
+            "$ref": "MOD_UC_KHGY8J09MW7JF8JV"
+          },
+          "name": "Cancel Ticket & Compute Refund"
+        },
+        {
+          "_type": "UMLUseCase",
+          "_id": "UC_ZGPO08ELMW7JF8JV",
+          "_parent": {
+            "$ref": "MOD_UC_KHGY8J09MW7JF8JV"
+          },
+          "name": "Admin Login & Authentication"
+        },
+        {
+          "_type": "UMLUseCase",
+          "_id": "UC_SSF1A0A9MW7JF8JV",
+          "_parent": {
+            "$ref": "MOD_UC_KHGY8J09MW7JF8JV"
+          },
+          "name": "Manage Trains, Routes & Schedules"
+        },
+        {
+          "_type": "UMLUseCase",
+          "_id": "UC_QBTHRHG3MW7JF8JV",
+          "_parent": {
+            "$ref": "MOD_UC_KHGY8J09MW7JF8JV"
+          },
+          "name": "Manage Inventory & Dynamic Fares"
+        },
+        {
+          "_type": "UMLUseCase",
+          "_id": "UC_RFRSE8DPMW7JF8JV",
+          "_parent": {
+            "$ref": "MOD_UC_KHGY8J09MW7JF8JV"
+          },
+          "name": "View Reservations & Manifests"
+        },
+        {
+          "_type": "UMLUseCase",
+          "_id": "UC_M43UGYO8MW7JF8JV",
+          "_parent": {
+            "$ref": "MOD_UC_KHGY8J09MW7JF8JV"
+          },
+          "name": "Inspect System Audit Logs"
+        }
+      ]
+    }
+  ]
+}
